@@ -5,6 +5,20 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+if [ "$(systemd-detect-virt)" == "openvz" ]; then
+    echo "OpenVZ is not supported"
+    exit
+fi
+
+if [ "$(systemd-detect-virt)" == "lxc" ]; then
+    echo "LXC is not supported (yet)."
+    echo "WireGuard can techniaclly run in an LXC container,"
+    echo "but the kernel module has to be installed on the host,"
+    echo "the container has to be run with some specific parameters"
+    echo "and only the tools need to be installed in the container."
+    exit
+fi
+
 # Detect public IPv4 address and pre-fill for the user
 SERVER_PUB_IPV4=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
 read -rp "IPv4 or IPv6 public address: " -e -i "$SERVER_PUB_IPV4" SERVER_PUB_IP
