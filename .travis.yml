@@ -1,0 +1,4 @@
+language: shell
+
+script:
+  - shellcheck wireguard-install.sh
