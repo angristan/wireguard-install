@@ -19,6 +19,21 @@ if [ "$(systemd-detect-virt)" == "lxc" ]; then
     exit
 fi
 
+# Check OS version
+if [[ -e /etc/debian_version ]]; then
+    source /etc/os-release
+    OS=$ID # debian or ubuntu
+elif [[ -e /etc/fedora-release ]]; then
+    OS=fedora
+elif [[ -e /etc/centos-release ]]; then
+    OS=centos
+elif [[ -e /etc/arch-release ]]; then
+    OS=arch
+else
+    echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
+    exit 1
+fi
+
 # Detect public IPv4 address and pre-fill for the user
 SERVER_PUB_IPV4=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
 read -rp "IPv4 or IPv6 public address: " -e -i "$SERVER_PUB_IPV4" SERVER_PUB_IP
@@ -52,9 +67,26 @@ read -rp "First DNS resolver to use for the client: " -e -i "$CLIENT_DNS_1" CLIE
 CLIENT_DNS_2="176.103.130.131"
 read -rp "Second DNS resolver to use for the client: " -e -i "$CLIENT_DNS_2" CLIENT_DNS_2
 
-# Install WireGuard on Ubuntu
-add-apt-repository -y ppa:wireguard/wireguard
-apt-get install -y wireguard
+# Install WireGuard tools and module
+if [[ "$OS" = 'ubuntu' ]]; then
+    add-apt-repository ppa:wireguard/wireguard
+    apt-get update
+    apt-get install wireguard
+elif [[ "$OS" = 'debian' ]]; then
+    echo "deb http://deb.debian.org/debian/ unstable main" > /etc/apt/sources.list.d/unstable.list
+    printf 'Package: *\nPin: release a=unstable\nPin-Priority: 90\n' > /etc/apt/preferences.d/limit-unstable
+    apt update
+    apt install wireguard
+elif [[ "$OS" = 'fedora' ]]; then
+    dnf copr enable jdoss/wireguard
+    dnf install wireguard-dkms wireguard-tools
+elif [[ "$OS" = 'centos' ]]; then
+    curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
+    yum install epel-release
+    yum install wireguard-dkms wireguard-tools
+elif [[ "$OS" = 'arch' ]]; then
+    pacman -S wireguard-tools
+fi
 
 # Generate key pair for the server
 SERVER_PRIV_KEY=$(wg genkey)
