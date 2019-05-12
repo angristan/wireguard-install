@@ -1,8 +1,9 @@
 workflow "ShellCheck" {
   on = "push"
-  resolves = ["shellcheck"]
+  resolves = ["ShellCheck"]
 }
 
-action "shellcheck" {
-  uses = "ludeeus/actions/shellcheck@master"
+action "ShellCheck" {
+  uses = "actions/bin/shellcheck@master"
+  args = "wireguard-install.sh"
 }
