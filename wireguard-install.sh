@@ -89,12 +89,9 @@ elif [[ "$OS" = 'arch' ]]; then
 fi
 
 # Generate key pair for the server
-SERVER_PRIV_KEY=$(wg genkey)
-SERVER_PUB_KEY=$(echo "$SERVER_PRIV_KEY" | wg pubkey)
-
-# Generate key pair for the server
 CLIENT_PRIV_KEY=$(wg genkey)
 CLIENT_PUB_KEY=$(echo "$CLIENT_PRIV_KEY" | wg pubkey)
+CLIENT_PRE_KEY=$( wg genpsk )
 
 # Add server interface
 echo "[Interface]
@@ -107,6 +104,7 @@ PostDown = iptables -t nat -D POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE; ip6t
 # Add the client as a peer to the server
 echo "[Peer]
 PublicKey = $CLIENT_PUB_KEY
+PresharedKey =$CLIENT_PRE_KEY
 AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
 
 # Create client file with interface
@@ -118,6 +116,7 @@ DNS = $CLIENT_DNS_1,$CLIENT_DNS_2" > "$HOME/$SERVER_WG_NIC-client.conf"
 # Add the server as a peer to the client
 echo "[Peer]
 PublicKey = $SERVER_PUB_KEY
+PresharedKey =$CLIENT_PRE_KEY
 Endpoint = $SERVER_PUB_IP:1194
 AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client.conf"
 
