@@ -112,7 +112,7 @@ AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >> "/etc/wireguard/$SERVER_
 # Create client file with interface
 echo "[Interface]
 PrivateKey = $CLIENT_PRIV_KEY
-Address = $CLIENT_IPV4/24,$CLIENT_IPV6/64
+Address = $CLIENT_WG_IPV4/24,$CLIENT_WG_IPV4/64
 DNS = $CLIENT_DNS_1,$CLIENT_DNS_2" > "$HOME/$SERVER_WG_NIC-client.conf"
 
 # Add the server as a peer to the client
