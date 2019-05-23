@@ -88,6 +88,9 @@ elif [[ "$OS" = 'arch' ]]; then
     pacman -S wireguard-tools
 fi
 
+# Make sure the directory exists (this does not seem the be the case on fedora)
+mkdir /etc/wireguard > /dev/null 2>&1
+
 # Generate key pair for the server
 SERVER_PRIV_KEY=$(wg genkey)
 SERVER_PUB_KEY=$(echo "$SERVER_PRIV_KEY" | wg pubkey)
