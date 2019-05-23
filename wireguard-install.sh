@@ -118,7 +118,7 @@ DNS = $CLIENT_DNS_1,$CLIENT_DNS_2" > "$HOME/$SERVER_WG_NIC-client.conf"
 # Add the server as a peer to the client
 echo "[Peer]
 PublicKey = $SERVER_PUB_KEY
-Endpoint = $SERVER_PUB_IP:1194
+Endpoint = $SERVER_PUB_IP:$SERVER_PORT
 AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client.conf"
 
 # Enable routing on the server
