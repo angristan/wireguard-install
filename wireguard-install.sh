@@ -124,6 +124,8 @@ PublicKey = $SERVER_PUB_KEY
 Endpoint = $SERVER_PUB_IP:$SERVER_PORT
 AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client.conf"
 
+chmod 600 -R /etc/wireguard/
+
 # Enable routing on the server
 echo "net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1" > /etc/sysctl.d/wg.conf
