@@ -38,6 +38,8 @@ fi
 SERVER_PUB_IPV4=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
 read -rp "IPv4 or IPv6 public address: " -e -i "$SERVER_PUB_IPV4" SERVER_PUB_IP
 
+read -rp "Did you enter an IPv6 address? (y/n) " -e -i n SERVER_PUB_IPV6_USED
+
 # Detect public interface and pre-fill for the user
 SERVER_PUB_NIC="$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)"
 read -rp "Public interface: " -e -i "$SERVER_PUB_NIC" SERVER_PUB_NIC
@@ -66,6 +68,12 @@ read -rp "First DNS resolver to use for the client: " -e -i "$CLIENT_DNS_1" CLIE
 
 CLIENT_DNS_2="176.103.130.131"
 read -rp "Second DNS resolver to use for the client: " -e -i "$CLIENT_DNS_2" CLIENT_DNS_2
+
+if [[ $SERVER_PUB_IPV6_USED = 'y' ]]; then
+    ENDPOINT="[$SERVER_PUB_IP]:$SERVER_PORT"
+else
+    ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
+fi
 
 # Install WireGuard tools and module
 if [[ "$OS" = 'ubuntu' ]]; then
@@ -121,7 +129,7 @@ DNS = $CLIENT_DNS_1,$CLIENT_DNS_2" > "$HOME/$SERVER_WG_NIC-client.conf"
 # Add the server as a peer to the client
 echo "[Peer]
 PublicKey = $SERVER_PUB_KEY
-Endpoint = $SERVER_PUB_IP:$SERVER_PORT
+Endpoint = $ENDPOINT
 AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client.conf"
 
 chmod 600 -R /etc/wireguard/

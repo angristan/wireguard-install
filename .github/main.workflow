@@ -5,5 +5,5 @@ workflow "ShellCheck" {
 
 action "shellcheck" {
   uses = "actions/bin/shellcheck@master"
-  args = "wireguard-install.sh -e SC1091"
+  args = "wireguard-install.sh -e SC1091 SC2034"
 }
