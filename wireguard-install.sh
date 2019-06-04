@@ -132,6 +132,16 @@ PublicKey = $SERVER_PUB_KEY
 Endpoint = $ENDPOINT
 AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client.conf"
 
+# Ask for pre-shared symmetric key
+read -r -p "Want to use pre-shared symmetric key? [y/N] " response
+case "$response" in
+    [yY][eE][sS]|[yY]) 
+        CLIENT_SYMM_PRE_KEY=$( wg genpsk )
+        echo "PresharedKey = $CLIENT_PRE_KEY" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
+        echo "PresharedKey =$CLIENT_PRE_KEY" >> "$HOME/$SERVER_WG_NIC-client.conf"
+        ;;
+esac
+
 chmod 600 -R /etc/wireguard/
 
 # Enable routing on the server
