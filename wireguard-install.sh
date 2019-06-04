@@ -137,8 +137,8 @@ read -r -p "Want to use pre-shared symmetric key? [y/N] " response
 case "$response" in
     [yY][eE][sS]|[yY]) 
         CLIENT_SYMM_PRE_KEY=$( wg genpsk )
-        echo "PresharedKey = $CLIENT_PRE_KEY" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
-        echo "PresharedKey =$CLIENT_PRE_KEY" >> "$HOME/$SERVER_WG_NIC-client.conf"
+        echo "PresharedKey = $CLIENT_SYMM_PRE_KEY" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
+        echo "PresharedKey =$CLIENT_SYMM_PRE_KEY" >> "$HOME/$SERVER_WG_NIC-client.conf"
         ;;
 esac
 
