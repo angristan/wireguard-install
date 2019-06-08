@@ -68,7 +68,8 @@ CLIENT_DNS_2="176.103.130.131"
 read -rp "Second DNS resolver to use for the client: " -e -i "$CLIENT_DNS_2" CLIENT_DNS_2
 
 # Ask for pre-shared symmetric key
-read -rp "Want to use pre-shared symmetric key?  [y/N] " is_pre_symm
+IS_PRE_SYMM="y"
+read -rp "Want to use pre-shared symmetric key? [Y/n]: " -e -i "$IS_PRE_SYMM" IS_PRE_SYMM
 
 if [[ $SERVER_PUB_IP =~ .*:.* ]]
 then
@@ -137,7 +138,7 @@ Endpoint = $ENDPOINT
 AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client.conf"
 
 # Add pre shared symmetric key to respective files
-case "$is_pre_symm" in
+case "$IS_PRE_SYMM" in
     [yY][eE][sS]|[yY]) 
         CLIENT_SYMM_PRE_KEY=$( wg genpsk )
         echo "PresharedKey = $CLIENT_SYMM_PRE_KEY" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
