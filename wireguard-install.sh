@@ -84,11 +84,13 @@ fi
 if [[ "$OS" = 'ubuntu' ]]; then
     add-apt-repository ppa:wireguard/wireguard
     apt-get update
+    apt-get install linux-headers-$(uname -r)
     apt-get install wireguard
 elif [[ "$OS" = 'debian' ]]; then
     echo "deb http://deb.debian.org/debian/ unstable main" > /etc/apt/sources.list.d/unstable.list
     printf 'Package: *\nPin: release a=unstable\nPin-Priority: 90\n' > /etc/apt/preferences.d/limit-unstable
     apt update
+    apt-get install linux-headers-$(uname -r)
     apt install wireguard
 elif [[ "$OS" = 'fedora' ]]; then
     dnf copr enable jdoss/wireguard
@@ -98,6 +100,7 @@ elif [[ "$OS" = 'centos' ]]; then
     yum install epel-release
     yum install wireguard-dkms wireguard-tools
 elif [[ "$OS" = 'arch' ]]; then
+    pacman -S linux-headers
     pacman -S wireguard-tools
 fi
 
@@ -139,7 +142,7 @@ AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client.conf"
 
 # Add pre shared symmetric key to respective files
 case "$IS_PRE_SYMM" in
-    [yY][eE][sS]|[yY]) 
+    [yY][eE][sS]|[yY])
         CLIENT_SYMM_PRE_KEY=$( wg genpsk )
         echo "PresharedKey = $CLIENT_SYMM_PRE_KEY" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
         echo "PresharedKey = $CLIENT_SYMM_PRE_KEY" >> "$HOME/$SERVER_WG_NIC-client.conf"
