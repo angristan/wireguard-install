@@ -1,6 +1,6 @@
 # WireGuard installer
 
-Easily set up a dual-stack WireGuard VPN on a Linux server. See the issues for the WIP.
+Easily set up a dual-stack [WireGuard](https://www.wireguard.com/) VPN on a Linux server. See the issues for the WIP.
 
 ## Requirements
 
