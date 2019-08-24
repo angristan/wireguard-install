@@ -101,7 +101,7 @@ elif [[ "$OS" = 'centos' ]]; then
     yum install wireguard-dkms wireguard-tools iptables
 elif [[ "$OS" = 'arch' ]]; then
     pacman -S linux-headers
-    pacman -S wireguard-tools iptables
+    pacman -S wireguard-tools iptables wireguard-arch
 fi
 
 # Make sure the directory exists (this does not seem the be the case on fedora)
