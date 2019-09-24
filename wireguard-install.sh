@@ -100,7 +100,7 @@ else
   ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
 fi
 
-function wireguard-install () {
+function wireguard-install() {
 # Install WireGuard tools and module
 if [[ "$OS" = 'ubuntu' ]]; then
     add-apt-repository ppa:wireguard/wireguard
@@ -183,11 +183,14 @@ esac
 
 chmod 600 -R /etc/wireguard/
 
+function forwarding-ip() {
 # Enable routing on the server
 echo "net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1" > /etc/sysctl.d/wg.conf
-
 sysctl --system
+}
 
-systemctl start "wg-quick@$SERVER_WG_NIC"
+forwating-ip
+
 systemctl enable "wg-quick@$SERVER_WG_NIC"
+systemctl start "wg-quick@$SERVER_WG_NIC"
