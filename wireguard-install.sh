@@ -1,15 +1,19 @@
 #!/bin/bash
 
+function root-check() {
 if [ "$EUID" -ne 0 ]; then
     echo "You need to run this script as root"
     exit 1
 fi
+}
 
+root-check
+
+function virt-check() {
 if [ "$(systemd-detect-virt)" == "openvz" ]; then
     echo "OpenVZ is not supported"
     exit
 fi
-
 if [ "$(systemd-detect-virt)" == "lxc" ]; then
     echo "LXC is not supported (yet)."
     echo "WireGuard can technically run in an LXC container,"
@@ -18,29 +22,45 @@ if [ "$(systemd-detect-virt)" == "lxc" ]; then
     echo "and only the tools need to be installed in the container."
     exit
 fi
+}
 
-# Check OS version
-if [[ -e /etc/debian_version ]]; then
-    source /etc/os-release
-    OS=$ID # debian or ubuntu
-elif [[ -e /etc/fedora-release ]]; then
-    OS=fedora
-elif [[ -e /etc/centos-release ]]; then
-    OS=centos
-elif [[ -e /etc/arch-release ]]; then
-    OS=arch
-else
-    echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
-    exit 1
-fi
+virt-check
 
+function dist-check() {
+  if [ -e /etc/centos-release ]; then
+    OS="centos"
+  elif [ -e /etc/debian_version ]; then
+    OS=$(lsb_release -is)
+  elif [ -e /etc/arch-release ]; then
+    OS="arch"
+  elif [ -e /etc/fedora-release ]; then
+    OS="fedora"
+  elif [ -e /etc/redhat-release ]; then
+    OS="redhat"
+  else
+    echo "Your distribution is not supported (yet)."
+    exit
+  fi
+}
+
+# Check Operating System
+dist-check
+
+function find-ip() {
 # Detect public IPv4 address and pre-fill for the user
 SERVER_PUB_IPV4=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
 read -rp "IPv4 or IPv6 public address: " -e -i "$SERVER_PUB_IPV4" SERVER_PUB_IP
+}
 
+find-ip
+
+function pub-nic() {
 # Detect public interface and pre-fill for the user
 SERVER_PUB_NIC="$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)"
 read -rp "Public interface: " -e -i "$SERVER_PUB_NIC" SERVER_PUB_NIC
+}
+
+pub-nic
 
 SERVER_WG_NIC="wg0"
 read -rp "WireGuard interface name: " -e -i "$SERVER_WG_NIC" SERVER_WG_NIC
@@ -80,12 +100,21 @@ else
   ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
 fi
 
+function wireguard-install () {
 # Install WireGuard tools and module
 if [[ "$OS" = 'ubuntu' ]]; then
     add-apt-repository ppa:wireguard/wireguard
     apt-get update
     apt-get install "linux-headers-$(uname -r)"
     apt-get install wireguard iptables
+elif [[ "$OS" = 'raspbian' ]]; then
+    apt-get update
+    echo "deb http://deb.debian.org/debian/ unstable main" >/etc/apt/sources.list.d/unstable.list
+    apt-get install dirmngr -y
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC
+    printf 'Package: *\nPin: release a=unstable\nPin-Priority: 90\n' >/etc/apt/preferences.d/limit-unstable
+    apt-get update
+    apt-get install wireguard qrencode raspberrypi-kernel-headers haveged curl resolvconf -y
 elif [[ "$OS" = 'debian' ]]; then
     echo "deb http://deb.debian.org/debian/ unstable main" > /etc/apt/sources.list.d/unstable.list
     printf 'Package: *\nPin: release a=unstable\nPin-Priority: 90\n' > /etc/apt/preferences.d/limit-unstable
@@ -103,6 +132,9 @@ elif [[ "$OS" = 'arch' ]]; then
     pacman -S linux-headers
     pacman -S wireguard-tools iptables wireguard-arch
 fi
+}
+
+wireguard-install
 
 # Make sure the directory exists (this does not seem the be the case on fedora)
 mkdir /etc/wireguard > /dev/null 2>&1
