@@ -20,19 +20,20 @@ if [ "$(systemd-detect-virt)" == "lxc" ]; then
 fi
 
 # Check OS version
-if [[ -e /etc/debian_version ]]; then
-    source /etc/os-release
-    OS=$ID # debian or ubuntu
-elif [[ -e /etc/fedora-release ]]; then
-    OS=fedora
-elif [[ -e /etc/centos-release ]]; then
-    OS=centos
-elif [[ -e /etc/arch-release ]]; then
-    OS=arch
-else
-    echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
-    exit 1
-fi
+  if [ -e /etc/centos-release ]; then
+    OS="centos"
+  elif [ -e /etc/debian_version ]; then
+    OS=$(lsb_release -is)
+  elif [ -e /etc/arch-release ]; then
+    OS="arch"
+  elif [ -e /etc/fedora-release ]; then
+    OS="fedora"
+  elif [ -e /etc/redhat-release ]; then
+    OS="redhat"
+  else
+    echo "Your distribution is not supported (yet)."
+    exit
+  fi
 
 # Detect public IPv4 address and pre-fill for the user
 SERVER_PUB_IPV4=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
@@ -86,6 +87,14 @@ if [[ "$OS" = 'ubuntu' ]]; then
     apt-get update
     apt-get install "linux-headers-$(uname -r)"
     apt-get install wireguard iptables
+elif [[ "$OS" = 'raspbian' ]]; then
+    apt-get update
+    echo "deb http://deb.debian.org/debian/ unstable main" >/etc/apt/sources.list.d/unstable.list
+    apt-get install dirmngr -y
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC
+    printf 'Package: *\nPin: release a=unstable\nPin-Priority: 90\n' >/etc/apt/preferences.d/limit-unstable
+    apt-get update
+    apt-get install wireguard raspberrypi-kernel-headers -y
 elif [[ "$OS" = 'debian' ]]; then
     echo "deb http://deb.debian.org/debian/ unstable main" > /etc/apt/sources.list.d/unstable.list
     printf 'Package: *\nPin: release a=unstable\nPin-Priority: 90\n' > /etc/apt/preferences.d/limit-unstable
