@@ -8,4 +8,4 @@ jobs:
     - name: shellcheck
       uses: ludeeus/action-shellcheck@0.0.1
       with:
-        args: wireguard-install.sh -e SC1091 -e SC2034
+        args: wireguard-install.sh -e SC1091 -e SC2034 -e SC1091
