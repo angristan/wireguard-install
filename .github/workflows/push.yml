@@ -6,6 +6,6 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: shellcheck
-      uses: actions/bin/shellcheck@master
+      uses: ludeeus/actions/shellcheck@master
       with:
         args: wireguard-install.sh -e SC1091 -e SC2034
