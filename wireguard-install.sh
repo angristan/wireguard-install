@@ -111,7 +111,7 @@ mkdir /etc/wireguard > /dev/null 2>&1
 SERVER_PRIV_KEY=$(wg genkey)
 SERVER_PUB_KEY=$(echo "$SERVER_PRIV_KEY" | wg pubkey)
 
-# Generate key pair for the server
+# Generate key pair for the client
 CLIENT_PRIV_KEY=$(wg genkey)
 CLIENT_PUB_KEY=$(echo "$CLIENT_PRIV_KEY" | wg pubkey)
 
