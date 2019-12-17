@@ -13,6 +13,8 @@ Easily set up a dual-stack [WireGuard](https://www.wireguard.com/) VPN on a Linu
 - Oracle 7.x
 - Red Hat 7.x / 8.x
 - Fedora 15 / 31
+- Arch Linux
+- Manjaro
 
 I recommend these cheap cloud providers for your VPN server:
 
