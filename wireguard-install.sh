@@ -1,9 +1,25 @@
 #!/bin/bash
+#
+# About: Install WireGuard automatically
+# Author: angristan
+# Thanks : shyamjos, outis151, Leopere, ucawen, Shagon94, shoujii, liberodark
+# License: MIT
 
-if [ "$EUID" -ne 0 ]; then
-    echo "You need to run this script as root"
-    exit 1
-fi
+version="1.0.0"
+
+echo "Welcome on WireGuard Install Script $version"
+
+#=================================================
+# CHECK ROOT
+#=================================================
+
+if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
+
+#=================================================
+# RETRIEVE ARGUMENTS FROM THE MANIFEST AND VAR
+#=================================================
+
+distribution=$(cat /etc/*release | grep "PRETTY_NAME" | sed 's/PRETTY_NAME=//g' | sed 's/["]//g' | awk '{print $1}')
 
 if [ "$(systemd-detect-virt)" == "openvz" ]; then
     echo "OpenVZ is not supported"
@@ -17,21 +33,6 @@ if [ "$(systemd-detect-virt)" == "lxc" ]; then
     echo "the container has to be run with some specific parameters"
     echo "and only the tools need to be installed in the container."
     exit
-fi
-
-# Check OS version
-if [[ -e /etc/debian_version ]]; then
-    source /etc/os-release
-    OS=$ID # debian or ubuntu
-elif [[ -e /etc/fedora-release ]]; then
-    OS=fedora
-elif [[ -e /etc/centos-release ]]; then
-    OS=centos
-elif [[ -e /etc/arch-release ]]; then
-    OS=arch
-else
-    echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
-    exit 1
 fi
 
 # Detect public IPv4 address and pre-fill for the user
@@ -80,29 +81,44 @@ else
   ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
 fi
 
-# Install WireGuard tools and module
-if [[ "$OS" = 'ubuntu' ]]; then
-    add-apt-repository ppa:wireguard/wireguard
-    apt-get update
-    apt-get install "linux-headers-$(uname -r)"
-    apt-get install wireguard iptables resolvconf
-elif [[ "$OS" = 'debian' ]]; then
-    echo "deb http://deb.debian.org/debian/ unstable main" > /etc/apt/sources.list.d/unstable.list
-    printf 'Package: *\nPin: release a=unstable\nPin-Priority: 90\n' > /etc/apt/preferences.d/limit-unstable
-    apt update
-    apt-get install "linux-headers-$(uname -r)"
-    apt install wireguard iptables resolvconf
-elif [[ "$OS" = 'fedora' ]]; then
-    dnf copr enable jdoss/wireguard
-    dnf install wireguard-dkms wireguard-tools iptables
-elif [[ "$OS" = 'centos' ]]; then
-    curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
-    yum install epel-release
-    yum install wireguard-dkms wireguard-tools iptables
-elif [[ "$OS" = 'arch' ]]; then
-    pacman -S linux-headers
-    pacman -S wireguard-tools iptables wireguard-arch
+install_wg(){
+echo "Install WireGuard Server ($distribution)"
+
+  # Check OS & WireGuard
+
+  if ! command -v wg-quick > /dev/null 2>&1; then
+
+    if [ "$distribution" = "CentOS" ] || [ "$distribution" = "Red\ Hat" ] || [ "$distribution" = "Oracle" ]; then
+      curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo > /dev/null 2>&1
+      yum install -y epel-release > /dev/null 2>&1
+      yum install -y wireguard-dkms wireguard-tools iptables > /dev/null 2>&1
+      
+    elif [ "$distribution" = "Fedora" ]; then
+      dnf copr enable jdoss/wireguard > /dev/null 2>&1
+      dnf install -y wireguard-dkms wireguard-tools iptables > /dev/null 2>&1
+    
+    elif [ "$distribution" = "Ubuntu" ] || [ "$distribution" = "Deepin" ]; then
+      add-apt-repository ppa:wireguard/wireguard
+      apt-get update > /dev/null 2>&1
+      apt-get install -y "linux-headers-$(uname -r)" > /dev/null 2>&1
+      apt-get install -y wireguard iptables resolvconf --force-yes > /dev/null 2>&1
+
+    elif [ "$distribution" = "Debian" ]; then
+      add-apt-repository ppa:wireguard/wireguard
+      apt-get update > /dev/null 2>&1
+      apt-get install -y "linux-headers-$(uname -r)" > /dev/null 2>&1
+      apt-get install -y wireguard iptables resolvconf --force-yes > /dev/null 2>&1
+      
+    elif [ "$distribution" = "Manjaro" ] || [ "$distribution" = "Arch\ Linux" ]; then
+      pacman -S linux-headers dkms --noconfirm > /dev/null 2>&1
+      pacman -S wireguard-dkms wireguard-tools iptables openresolv --noconfirm > /dev/null 2>&1
+
+    fi
 fi
+}
+
+# Install WireGuard
+install_wg
 
 # Make sure the directory exists (this does not seem the be the case on fedora)
 mkdir /etc/wireguard > /dev/null 2>&1
