@@ -103,7 +103,7 @@ echo "Install WireGuard Server ($distribution)"
       apt-get install -y "linux-headers-$(uname -r)" > /dev/null 2>&1
       apt-get install -y wireguard iptables resolvconf --force-yes > /dev/null 2>&1
 
-    elif [ "$distribution" = "Debian" ]; then
+    elif [ "$distribution" = "Debian" ] || [ "$distribution" = "Raspbian" ]; then
       add-apt-repository ppa:wireguard/wireguard
       apt-get update > /dev/null 2>&1
       apt-get install -y "linux-headers-$(uname -r)" > /dev/null 2>&1
