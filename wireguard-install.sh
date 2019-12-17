@@ -151,7 +151,8 @@ Address = $CLIENT_WG_IPV4/24,$CLIENT_WG_IPV6/64
 DNS = $CLIENT_DNS_1,$CLIENT_DNS_2" > "$HOME/$SERVER_WG_NIC-client.conf"
 
 # Add the server as a peer to the client
-echo "[Peer]
+echo "
+[Peer]
 PublicKey = $SERVER_PUB_KEY
 Endpoint = $ENDPOINT
 AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client.conf"
