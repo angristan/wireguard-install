@@ -100,8 +100,8 @@ elif [[ "$OS" = 'centos' ]]; then
     yum install epel-release
     yum install wireguard-dkms wireguard-tools iptables
 elif [[ "$OS" = 'arch' ]]; then
-    pacman -S linux-headers
-    pacman -S wireguard-tools iptables wireguard-arch
+    pacman -S linux-headers dkms
+    pacman -S wireguard-dkms wireguard-tools iptables openresolv 
 fi
 
 # Make sure the directory exists (this does not seem the be the case on fedora)
