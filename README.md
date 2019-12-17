@@ -6,7 +6,7 @@ Easily set up a dual-stack [WireGuard](https://www.wireguard.com/) VPN on a Linu
 
 ### Linux Compatibility : (Systemd)
 
-- Debian 8.x / 9.x / 10.x
+- Debian 9.x / 10.x
 - Deepin 15.x
 - Ubuntu 16.04 / 19.10
 - Centos 7.x / 8.x
