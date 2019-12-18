@@ -81,6 +81,54 @@ else
   ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
 fi
 
+remove_wg(){
+echo "Remove WireGuard Server ($distribution)"
+
+  # Check OS & WireGuard
+
+  if command -v wg-quick > /dev/null 2>&1; then
+
+    if [ "$distribution" = "CentOS" ] || [ "$distribution" = "Red\ Hat" ] || [ "$distribution" = "Oracle" ]; then
+      systemctl stop wg-quick@wg0.service > /dev/null 2>&1
+      systemctl disable wg-quick@wg0.service > /dev/null 2>&1
+      sudo rm /etc/yum.repos.d/wireguard.repo
+      yum remove -y wireguard-dkms wireguard-tools > /dev/null 2>&1
+      rm -rf /etc/wireguard
+      rm /etc/sysctl.d/wg.conf
+      
+    elif [ "$distribution" = "Fedora" ]; then
+      systemctl stop wg-quick@wg0.service > /dev/null 2>&1
+      systemctl disable wg-quick@wg0.service > /dev/null 2>&1
+      dnf copr disable jdoss/wireguard > /dev/null 2>&1
+      dnf remove -y wireguard-dkms wireguard-tools iptables > /dev/null 2>&1
+      rm -rf /etc/wireguard
+      rm /etc/sysctl.d/wg.conf
+    
+    elif [ "$distribution" = "Ubuntu" ] || [ "$distribution" = "Deepin" ]; then
+      systemctl stop wg-quick@wg0.service > /dev/null 2>&1
+      systemctl disable wg-quick@wg0.service > /dev/null 2>&1
+      apt-get remove -y wireguard --force-yes > /dev/null 2>&1
+      rm -rf /etc/wireguard
+      rm /etc/sysctl.d/wg.conf
+
+    elif [ "$distribution" = "Debian" ] || [ "$distribution" = "Raspbian" ]; then
+      systemctl stop wg-quick@wg0.service > /dev/null 2>&1
+      systemctl disable wg-quick@wg0.service > /dev/null 2>&1
+      apt-get install -y wireguard iptables --force-yes > /dev/null 2>&1
+      rm -rf /etc/wireguard
+      rm /etc/sysctl.d/wg.conf
+      
+    elif [ "$distribution" = "Manjaro" ] || [ "$distribution" = "Arch\ Linux" ]; then
+      systemctl stop wg-quick@wg0.service > /dev/null 2>&1
+      systemctl disable wg-quick@wg0.service > /dev/null 2>&1
+      pacman -R wireguard-dkms wireguard-tools --noconfirm > /dev/null 2>&1
+      rm -rf /etc/wireguard
+      rm /etc/sysctl.d/wg.conf
+
+    fi
+fi
+}
+
 install_wg(){
 echo "Install WireGuard Server ($distribution)"
 
