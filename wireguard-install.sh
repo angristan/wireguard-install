@@ -21,44 +21,6 @@ if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
 
 distribution=$(cat /etc/*release | grep "PRETTY_NAME" | sed 's/PRETTY_NAME=//g' | sed 's/["]//g' | awk '{print $1}')
 
-usage ()
-{
-     echo "usage: -install or -remove"
-     echo "options:"
-     echo "-install: Install WireGuard"
-     echo "-remove: Remove WireGuard"
-     echo "-h: Show help"
-}
-
-parse_args ()
-{
-    while [ $# -ne 0 ]
-    do
-        case "${1}" in
-            -install)
-                shift
-                install_wg >&2
-                ;;
-            -remove)
-                shift
-                remove_wg >&2
-                ;;
-            -h|--help)
-                usage
-                exit 0
-                ;;
-            *)
-                echo "Invalid argument : ${1}" >&2
-                usage >&2
-                exit 1
-                ;;
-        esac
-        shift
-    done
-
-}
-
-
 if [ "$(systemd-detect-virt)" == "openvz" ]; then
     echo "OpenVZ is not supported"
     exit
@@ -262,3 +224,42 @@ sysctl --system
 
 systemctl start "wg-quick@$SERVER_WG_NIC"
 systemctl enable "wg-quick@$SERVER_WG_NIC"
+
+usage ()
+{
+     echo "usage: -install or -remove"
+     echo "options:"
+     echo "-install: Install WireGuard"
+     echo "-remove: Remove WireGuard"
+     echo "-h: Show help"
+}
+
+parse_args ()
+{
+    while [ $# -ne 0 ]
+    do
+        case "${1}" in
+            -install)
+                shift
+                install_wg >&2
+                ;;
+            -remove)
+                shift
+                remove_wg >&2
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Invalid argument : ${1}" >&2
+                usage >&2
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+}
+
+parse_args "$@"
