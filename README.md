@@ -38,6 +38,12 @@ Then run it :
 ./wireguard-install.sh -install
 ```
 
+For Remove :
+
+```sh
+./wireguard-install.sh -remove
+```
+
 It will install wireguard on the server, configure, create a systemd service and a client configuration file. Mutliple clients are not yet supported.
 
 Contributions are welcome!
