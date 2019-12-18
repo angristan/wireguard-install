@@ -30,36 +30,6 @@ usage ()
      echo "-h: Show help"
 }
 
-parse_args ()
-{
-    while [ $# -ne 0 ]
-    do
-        case "${1}" in
-            -install)
-                shift
-                arg_install_wg >&2
-                ;;
-            -remove)
-                shift
-                remove_wg >&2
-                ;;
-            -h|--help)
-                usage
-                exit 0
-                ;;
-            *)
-                echo "Invalid argument : ${1}" >&2
-                usage >&2
-                exit 1
-                ;;
-        esac
-        shift
-    done
-
-}
-
-parse_args "$@"
-
 detect_bad(){
 if [ "$(systemd-detect-virt)" == "openvz" ]; then
     echo "OpenVZ is not supported"
@@ -274,3 +244,33 @@ options
 install_wg
 configure_wg
 }
+
+parse_args ()
+{
+    while [ $# -ne 0 ]
+    do
+        case "${1}" in
+            -install)
+                shift
+                arg_install_wg >&2
+                ;;
+            -remove)
+                shift
+                remove_wg >&2
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Invalid argument : ${1}" >&2
+                usage >&2
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+}
+
+parse_args "$@"
