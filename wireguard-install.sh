@@ -107,7 +107,7 @@ echo "Remove WireGuard Server ($distribution)"
       sudo rm /etc/yum.repos.d/wireguard.repo
       yum remove -y wireguard-dkms wireguard-tools > /dev/null 2>&1
       rm -rf /etc/wireguard
-      rm /etc/sysctl.d/wg.conf
+      rm -f /etc/sysctl.d/wg.conf
       sysctl --system
       
     elif [ "$distribution" = "Fedora" ]; then
@@ -116,7 +116,7 @@ echo "Remove WireGuard Server ($distribution)"
       dnf copr disable jdoss/wireguard > /dev/null 2>&1
       dnf remove -y wireguard-dkms wireguard-tools iptables > /dev/null 2>&1
       rm -rf /etc/wireguard
-      rm /etc/sysctl.d/wg.conf
+      rm -f /etc/sysctl.d/wg.conf
       sysctl --system
     
     elif [ "$distribution" = "Ubuntu" ] || [ "$distribution" = "Deepin" ]; then
@@ -124,7 +124,7 @@ echo "Remove WireGuard Server ($distribution)"
       systemctl disable wg-quick@wg0.service > /dev/null 2>&1
       apt-get remove -y wireguard --force-yes > /dev/null 2>&1
       rm -rf /etc/wireguard
-      rm /etc/sysctl.d/wg.conf
+      rm -f /etc/sysctl.d/wg.conf
       sysctl --system
 
     elif [ "$distribution" = "Debian" ] || [ "$distribution" = "Raspbian" ]; then
@@ -132,7 +132,7 @@ echo "Remove WireGuard Server ($distribution)"
       systemctl disable wg-quick@wg0.service > /dev/null 2>&1
       apt-get install -y wireguard iptables --force-yes > /dev/null 2>&1
       rm -rf /etc/wireguard
-      rm /etc/sysctl.d/wg.conf
+      rm -f /etc/sysctl.d/wg.conf
       sysctl --system
       
     elif [ "$distribution" = "Manjaro" ] || [ "$distribution" = "Arch\ Linux" ]; then
@@ -140,7 +140,7 @@ echo "Remove WireGuard Server ($distribution)"
       systemctl disable wg-quick@wg0.service > /dev/null 2>&1
       pacman -R wireguard-dkms wireguard-tools --noconfirm > /dev/null 2>&1
       rm -rf /etc/wireguard
-      rm /etc/sysctl.d/wg.conf
+      rm -f /etc/sysctl.d/wg.conf
       sysctl --system
 
     fi
