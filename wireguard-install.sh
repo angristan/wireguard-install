@@ -245,6 +245,12 @@ install_wg
 configure_wg
 }
 
+arg_remove_wg(){
+# Remove WireGuard
+detect_bad
+remove_wg
+}
+
 parse_args ()
 {
     while [ $# -ne 0 ]
@@ -256,7 +262,7 @@ parse_args ()
                 ;;
             -remove)
                 shift
-                remove_wg >&2
+                arg_remove_wg >&2
                 ;;
             -h|--help)
                 usage
