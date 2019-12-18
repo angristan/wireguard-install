@@ -35,7 +35,7 @@ chmod +x wireguard-install.sh
 Then run it :
 
 ```sh
-./wireguard-install.sh
+./wireguard-install.sh -install
 ```
 
 It will install wireguard on the server, configure, create a systemd service and a client configuration file. Mutliple clients are not yet supported.
