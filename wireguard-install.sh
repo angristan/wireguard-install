@@ -21,6 +21,46 @@ if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
 
 distribution=$(cat /etc/*release | grep "PRETTY_NAME" | sed 's/PRETTY_NAME=//g' | sed 's/["]//g' | awk '{print $1}')
 
+usage ()
+{
+     echo "usage: -install or -remove"
+     echo "options:"
+     echo "-install: Install WireGuard"
+     echo "-remove: Remove WireGuard"
+     echo "-h: Show help"
+}
+
+parse_args ()
+{
+    while [ $# -ne 0 ]
+    do
+        case "${1}" in
+            -install)
+                shift
+                arg_install_wg >&2
+                ;;
+            -remove)
+                shift
+                remove_wg >&2
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Invalid argument : ${1}" >&2
+                usage >&2
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+}
+
+parse_args "$@"
+
+detect_bad(){
 if [ "$(systemd-detect-virt)" == "openvz" ]; then
     echo "OpenVZ is not supported"
     exit
@@ -34,7 +74,9 @@ if [ "$(systemd-detect-virt)" == "lxc" ]; then
     echo "and only the tools need to be installed in the container."
     exit
 fi
+}
 
+options(){
 # Detect public IPv4 address and pre-fill for the user
 SERVER_PUB_IPV4=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
 read -rp "IPv4 or IPv6 public address: " -e -i "$SERVER_PUB_IPV4" SERVER_PUB_IP
@@ -80,6 +122,7 @@ else
   echo "IPv4 Detected"
   ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
 fi
+}
 
 remove_wg(){
 echo "Remove WireGuard Server ($distribution)"
@@ -165,9 +208,7 @@ echo "Install WireGuard Server ($distribution)"
 fi
 }
 
-# Install WireGuard
-install_wg
-
+configure_wg(){
 # Make sure the directory exists (this does not seem the be the case on fedora)
 mkdir /etc/wireguard > /dev/null 2>&1
 
@@ -224,42 +265,12 @@ sysctl --system
 
 systemctl start "wg-quick@$SERVER_WG_NIC"
 systemctl enable "wg-quick@$SERVER_WG_NIC"
-
-usage ()
-{
-     echo "usage: -install or -remove"
-     echo "options:"
-     echo "-install: Install WireGuard"
-     echo "-remove: Remove WireGuard"
-     echo "-h: Show help"
 }
 
-parse_args ()
-{
-    while [ $# -ne 0 ]
-    do
-        case "${1}" in
-            -install)
-                shift
-                install_wg >&2
-                ;;
-            -remove)
-                shift
-                remove_wg >&2
-                ;;
-            -h|--help)
-                usage
-                exit 0
-                ;;
-            *)
-                echo "Invalid argument : ${1}" >&2
-                usage >&2
-                exit 1
-                ;;
-        esac
-        shift
-    done
-
+arg_install_wg(){
+# Install WireGuard
+detect_bad
+options
+install_wg
+configure_wg
 }
-
-parse_args "$@"
