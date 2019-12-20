@@ -5,7 +5,7 @@
 # Thanks : shyamjos, outis151, Leopere, ucawen, Shagon94, shoujii, liberodark
 # License: MIT
 
-version="1.0.0"
+version="1.0.1"
 
 echo "Welcome on WireGuard Install Script $version"
 
