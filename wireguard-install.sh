@@ -133,6 +133,8 @@ echo "Remove WireGuard Server ($distribution)"
       apt-get install -y wireguard iptables --force-yes > /dev/null 2>&1
       rm -rf /etc/wireguard
       rm -f /etc/sysctl.d/wg.conf
+      rm -f /etc/apt/sources.list.d/unstable.list
+      rm -f /etc/apt/preferences.d/limit-unstable
       sysctl --system
       
     elif [ "$distribution" = "Manjaro" ] || [ "$distribution" = "Arch\ Linux" ]; then
@@ -170,7 +172,8 @@ echo "Install WireGuard Server ($distribution)"
       apt-get install -y wireguard iptables resolvconf --force-yes > /dev/null 2>&1
 
     elif [ "$distribution" = "Debian" ] || [ "$distribution" = "Raspbian" ]; then
-      add-apt-repository ppa:wireguard/wireguard
+      echo "deb http://deb.debian.org/debian/ unstable main" > /etc/apt/sources.list.d/unstable.list
+      printf 'Package: *\nPin: release a=unstable\nPin-Priority: 150\n' > /etc/apt/preferences.d/limit-unstable
       apt-get update > /dev/null 2>&1
       apt-get install -y "linux-headers-$(uname -r)" > /dev/null 2>&1
       apt-get install -y wireguard iptables resolvconf --force-yes > /dev/null 2>&1
