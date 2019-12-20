@@ -104,7 +104,7 @@ echo "Remove WireGuard Server ($distribution)"
     if [ "$distribution" = "CentOS" ] || [ "$distribution" = "Red\ Hat" ] || [ "$distribution" = "Oracle" ]; then
       systemctl stop wg-quick@wg0.service > /dev/null 2>&1
       systemctl disable wg-quick@wg0.service > /dev/null 2>&1
-      sudo rm /etc/yum.repos.d/wireguard.repo
+      rm -f /etc/yum.repos.d/wireguard.repo
       yum remove -y wireguard-dkms wireguard-tools > /dev/null 2>&1
       rm -rf /etc/wireguard
       rm -f /etc/sysctl.d/wg.conf
