@@ -82,6 +82,7 @@ fi
 
 # Install WireGuard tools and module
 if [[ "$OS" = 'ubuntu' ]]; then
+    apt-get install software-properties-common
     add-apt-repository ppa:wireguard/wireguard
     apt-get update
     apt-get install "linux-headers-$(uname -r)"
