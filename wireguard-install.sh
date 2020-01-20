@@ -166,6 +166,8 @@ echo "Install WireGuard Server ($distribution)"
       dnf install -y wireguard-dkms wireguard-tools iptables > /dev/null 2>&1
     
     elif [ "$distribution" = "Ubuntu" ] || [ "$distribution" = "Deepin" ]; then
+      apt-get update > /dev/null 2>&1
+      apt-get install -y software-properties-common
       add-apt-repository ppa:wireguard/wireguard
       apt-get update > /dev/null 2>&1
       apt-get install -y "linux-headers-$(uname -r)" > /dev/null 2>&1
