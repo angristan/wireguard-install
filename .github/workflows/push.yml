@@ -7,5 +7,7 @@ jobs:
     - uses: actions/checkout@master
     - name: shellcheck
       uses: ludeeus/action-shellcheck@0.0.1
+      env:
+        SHELLCHECK_OPTS: -e SC1091
       with:
-        args: wireguard-install.sh -e SC1091 -e SC2034 -e SC1091
+        args: wireguard-install.sh
