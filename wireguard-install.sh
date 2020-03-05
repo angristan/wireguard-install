@@ -94,13 +94,12 @@ elif [[ "$OS" = 'debian' ]]; then
     apt-get install -y "linux-headers-$(uname -r)"
     apt-get install -y wireguard iptables resolvconf qrencode
 elif [[ "$OS" = 'fedora' ]]; then
-    if [[ "$VERSION_ID" -ge 32 ]]; then
-        dnf install -y wireguard-tools iptables qrencode
-    else
+    if [[ "$VERSION_ID" -lt 32 ]]; then
         dnf install -y dnf-plugins-core
         dnf copr enable -y jdoss/wireguard
-        dnf install -y wireguard-dkms wireguard-tools iptables qrencode
+        dnf install -y wireguard-dkms 
     fi
+    dnf install -y wireguard-tools iptables qrencode
 elif [[ "$OS" = 'centos' ]]; then
     curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
     yum -y install epel-release
