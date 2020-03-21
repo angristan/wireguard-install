@@ -166,7 +166,7 @@ echo -e "\nHere is your client config file as a QR Code:"
 qrencode -t ansiutf8 -l L < "$HOME/$SERVER_WG_NIC-client.conf"
 
 # Check if WireGuard is running
-systemctl is-active --quiet wg-quick@$SERVER_WG_NIC
+systemctl is-active --quiet "wg-quick@$SERVER_WG_NIC"
 WG_RUNNING=$?
 
 # Warn user about kernel version mismatch with headers
