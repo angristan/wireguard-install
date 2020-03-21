@@ -1,5 +1,64 @@
 #!/bin/bash
 
+function addClient () {
+    # Load params
+    source /etc/wireguard/params
+
+    if [[ $SERVER_PUB_IP =~ .*:.* ]]
+    then
+        echo "IPv6 Detected"
+        ENDPOINT="[$SERVER_PUB_IP]:$SERVER_PORT"
+    else
+        echo "IPv4 Detected"
+        ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
+    fi
+
+    CLIENT_WG_IPV4="10.66.66.2"
+    read -rp "Client's WireGuard IPv4 " -e -i "$CLIENT_WG_IPV4" CLIENT_WG_IPV4
+
+    CLIENT_WG_IPV6="fd42:42:42::2"
+    read -rp "Client's WireGuard IPv6 " -e -i "$CLIENT_WG_IPV6" CLIENT_WG_IPV6
+
+    # Adguard DNS by default
+    CLIENT_DNS_1="176.103.130.130"
+    read -rp "First DNS resolver to use for the client: " -e -i "$CLIENT_DNS_1" CLIENT_DNS_1
+
+    CLIENT_DNS_2="176.103.130.131"
+    read -rp "Second DNS resolver to use for the client: " -e -i "$CLIENT_DNS_2" CLIENT_DNS_2
+
+    CLIENT_NAME=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 10 ; echo '')
+
+    # Generate key pair for the client
+    CLIENT_PRIV_KEY=$(wg genkey)
+    CLIENT_PUB_KEY=$(echo "$CLIENT_PRIV_KEY" | wg pubkey)
+
+    # Create client file and add the server as a peer
+    echo "[Interface]
+PrivateKey = $CLIENT_PRIV_KEY
+Address = $CLIENT_WG_IPV4/24,$CLIENT_WG_IPV6/64
+DNS = $CLIENT_DNS_1,$CLIENT_DNS_2
+
+[Peer]
+PublicKey = $SERVER_PUB_KEY
+PresharedKey = $SYMM_PRE_KEY
+Endpoint = $ENDPOINT
+AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client-$CLIENT_NAME.conf"
+
+    # Add the client as a peer to the server
+    echo -e "\n[Peer]
+PublicKey = $CLIENT_PUB_KEY
+PresharedKey = $SYMM_PRE_KEY
+AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
+
+    systemctl restart "wg-quick@$SERVER_WG_NIC"
+
+    echo -e "\nHere is your client config file as a QR Code:"
+
+    qrencode -t ansiutf8 -l L < "$HOME/$SERVER_WG_NIC-client-$CLIENT_NAME.conf"
+
+    echo "It is also available in $HOME/$SERVER_WG_NIC-client-$CLIENT_NAME.conf"
+}
+
 if [ "$EUID" -ne 0 ]; then
     echo "You need to run this script as root"
     exit 1
@@ -17,6 +76,19 @@ if [ "$(systemd-detect-virt)" == "lxc" ]; then
     echo "the container has to be run with some specific parameters"
     echo "and only the tools need to be installed in the container."
     exit
+fi
+
+if [[ $1 == "add_client" ]];then
+    if [[ -e /etc/wireguard ]]; then
+        addClient
+        exit 0
+    else
+        echo "Please install WireGuard first."
+        exit 1
+    fi
+elif [[ -e /etc/wireguard ]]; then
+    echo "WireGuard is already installed. Run with 'add_client' to add a client."
+    exit 1
 fi
 
 # Check OS version
@@ -54,31 +126,6 @@ read -rp "Server's WireGuard IPv6 " -e -i "$SERVER_WG_IPV6" SERVER_WG_IPV6
 SERVER_PORT=1194
 read -rp "Server's WireGuard port " -e -i "$SERVER_PORT" SERVER_PORT
 
-CLIENT_WG_IPV4="10.66.66.2"
-read -rp "Client's WireGuard IPv4 " -e -i "$CLIENT_WG_IPV4" CLIENT_WG_IPV4
-
-CLIENT_WG_IPV6="fd42:42:42::2"
-read -rp "Client's WireGuard IPv6 " -e -i "$CLIENT_WG_IPV6" CLIENT_WG_IPV6
-
-# Adguard DNS by default
-CLIENT_DNS_1="176.103.130.130"
-read -rp "First DNS resolver to use for the client: " -e -i "$CLIENT_DNS_1" CLIENT_DNS_1
-
-CLIENT_DNS_2="176.103.130.131"
-read -rp "Second DNS resolver to use for the client: " -e -i "$CLIENT_DNS_2" CLIENT_DNS_2
-
-SYM_KEY="y"
-read -rp "Want to use a pre-shared symmetric key? [Y/n]: " -e -i "$SYM_KEY" SYM_KEY
-
-if [[ $SERVER_PUB_IP =~ .*:.* ]]
-then
-  echo "IPv6 Detected"
-  ENDPOINT="[$SERVER_PUB_IP]:$SERVER_PORT"
-else
-  echo "IPv4 Detected"
-  ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
-fi
-
 # Install WireGuard tools and module
 if [[ "$OS" = 'ubuntu' ]]; then
     apt-get install -y software-properties-common
@@ -108,49 +155,33 @@ fi
 # Make sure the directory exists (this does not seem the be the case on fedora)
 mkdir /etc/wireguard > /dev/null 2>&1
 
-# Generate key pair for the server
+chmod 600 -R /etc/wireguard/
+
 SERVER_PRIV_KEY=$(wg genkey)
 SERVER_PUB_KEY=$(echo "$SERVER_PRIV_KEY" | wg pubkey)
 
-# Generate key pair for the server
-CLIENT_PRIV_KEY=$(wg genkey)
-CLIENT_PUB_KEY=$(echo "$CLIENT_PRIV_KEY" | wg pubkey)
+# Save WireGuard settings
+echo "SERVER_PUB_IP=$SERVER_PUB_IP
+SERVER_PUB_NIC=$SERVER_PUB_NIC
+SERVER_WG_NIC=$SERVER_WG_NIC
+SERVER_WG_IPV4=$SERVER_WG_IPV4
+SERVER_WG_IPV6=$SERVER_WG_IPV6
+SERVER_PORT=$SERVER_PORT
+SERVER_PRIV_KEY=$SERVER_PRIV_KEY
+SERVER_PUB_KEY=$SERVER_PUB_KEY
+SYMM_PRE_KEY=$( wg genpsk )" > /etc/wireguard/params
+
+source /etc/wireguard/params
 
 # Add server interface
 echo "[Interface]
 Address = $SERVER_WG_IPV4/24,$SERVER_WG_IPV6/64
 ListenPort = $SERVER_PORT
+
 PrivateKey = $SERVER_PRIV_KEY
+
 PostUp = iptables -A FORWARD -i $SERVER_WG_NIC -j ACCEPT; iptables -t nat -A POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE; ip6tables -A FORWARD -i $SERVER_WG_NIC -j ACCEPT; ip6tables -t nat -A POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE
 PostDown = iptables -D FORWARD -i $SERVER_WG_NIC -j ACCEPT; iptables -t nat -D POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE; ip6tables -D FORWARD -i $SERVER_WG_NIC -j ACCEPT; ip6tables -t nat -D POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE" > "/etc/wireguard/$SERVER_WG_NIC.conf"
-
-# Add the client as a peer to the server
-echo "[Peer]
-PublicKey = $CLIENT_PUB_KEY
-AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
-
-# Create client file with interface
-echo "[Interface]
-PrivateKey = $CLIENT_PRIV_KEY
-Address = $CLIENT_WG_IPV4/24,$CLIENT_WG_IPV6/64
-DNS = $CLIENT_DNS_1,$CLIENT_DNS_2" > "$HOME/$SERVER_WG_NIC-client.conf"
-
-# Add the server as a peer to the client
-echo "[Peer]
-PublicKey = $SERVER_PUB_KEY
-Endpoint = $ENDPOINT
-AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client.conf"
-
-# Add pre shared symmetric key to respective files
-case "$SYM_KEY" in
-    [yY][eE][sS]|[yY])
-        CLIENT_SYMM_PRE_KEY=$( wg genpsk )
-        echo "PresharedKey = $CLIENT_SYMM_PRE_KEY" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
-        echo "PresharedKey = $CLIENT_SYMM_PRE_KEY" >> "$HOME/$SERVER_WG_NIC-client.conf"
-        ;;
-esac
-
-chmod 600 -R /etc/wireguard/
 
 # Enable routing on the server
 echo "net.ipv4.ip_forward = 1
@@ -160,10 +191,6 @@ sysctl --system
 
 systemctl start "wg-quick@$SERVER_WG_NIC"
 systemctl enable "wg-quick@$SERVER_WG_NIC"
-
-echo -e "\nHere is your client config file as a QR Code:"
-
-qrencode -t ansiutf8 -l L < "$HOME/$SERVER_WG_NIC-client.conf"
 
 # Check if WireGuard is running
 systemctl is-active --quiet "wg-quick@$SERVER_WG_NIC"
@@ -181,3 +208,5 @@ if [[ "$OS" =~ (fedora|centos) ]] && [[ $WG_RUNNING -ne 0 ]]; then
         echo "yum update -y && reboot"
     fi
 fi
+
+addClient
