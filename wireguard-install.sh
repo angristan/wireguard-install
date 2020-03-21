@@ -24,7 +24,8 @@ if [[ -e /etc/debian_version ]]; then
     source /etc/os-release
     OS=$ID # debian or ubuntu
 elif [[ -e /etc/fedora-release ]]; then
-    OS=fedora
+    source /etc/os-release
+    OS=$ID
 elif [[ -e /etc/centos-release ]]; then
     OS=centos
 elif [[ -e /etc/arch-release ]]; then
@@ -93,9 +94,12 @@ elif [[ "$OS" = 'debian' ]]; then
     apt-get install -y "linux-headers-$(uname -r)"
     apt-get install -y wireguard iptables resolvconf qrencode
 elif [[ "$OS" = 'fedora' ]]; then
-    dnf install -y dnf-plugins-core
-    dnf copr enable -y jdoss/wireguard
-    dnf install -y wireguard-dkms wireguard-tools iptables qrencode
+    if [[ "$VERSION_ID" -lt 32 ]]; then
+        dnf install -y dnf-plugins-core
+        dnf copr enable -y jdoss/wireguard
+        dnf install -y wireguard-dkms 
+    fi
+    dnf install -y wireguard-tools iptables qrencode
 elif [[ "$OS" = 'centos' ]]; then
     curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
     yum -y install epel-release
@@ -120,9 +124,17 @@ CLIENT_PUB_KEY=$(echo "$CLIENT_PRIV_KEY" | wg pubkey)
 echo "[Interface]
 Address = $SERVER_WG_IPV4/24,$SERVER_WG_IPV6/64
 ListenPort = $SERVER_PORT
-PrivateKey = $SERVER_PRIV_KEY
-PostUp = iptables -A FORWARD -i $SERVER_WG_NIC -j ACCEPT; iptables -t nat -A POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE; ip6tables -A FORWARD -i $SERVER_WG_NIC -j ACCEPT; ip6tables -t nat -A POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE
-PostDown = iptables -D FORWARD -i $SERVER_WG_NIC -j ACCEPT; iptables -t nat -D POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE; ip6tables -D FORWARD -i $SERVER_WG_NIC -j ACCEPT; ip6tables -t nat -D POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE" > "/etc/wireguard/$SERVER_WG_NIC.conf"
+PrivateKey = $SERVER_PRIV_KEY" > "/etc/wireguard/$SERVER_WG_NIC.conf"
+
+if [ -x "$(command -v firewall-cmd)" ]; then
+    FIREWALLD_IPV4_ADDRESS=$(echo $SERVER_WG_IPV4 | cut -d"." -f1-3)".0"
+    FIREWALLD_IPV6_ADDRESS=$(echo $SERVER_WG_IPV6 | sed 's/:[^:]*$/:0/')
+    echo "PostUp = firewall-cmd --add-port $SERVER_PORT/udp && firewall-cmd --add-rich-rule='rule family=ipv4 source address=$FIREWALLD_IPV4_ADDRESS/24 masquerade' && firewall-cmd --add-rich-rule='rule family=ipv6 source address=$FIREWALLD_IPV6_ADDRESS/24 masquerade'
+PostDown = firewall-cmd --remove-port $SERVER_PORT/udp && firewall-cmd --remove-rich-rule='rule family=ipv4 source address=$FIREWALLD_IPV4_ADDRESS/24 masquerade' && firewall-cmd --remove-rich-rule='rule family=ipv6 source address=$FIREWALLD_IPV6_ADDRESS/24 masquerade'" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
+else
+    echo "PostUp = iptables -A FORWARD -i $SERVER_WG_NIC -j ACCEPT; iptables -t nat -A POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE; ip6tables -A FORWARD -i $SERVER_WG_NIC -j ACCEPT; ip6tables -t nat -A POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE
+PostDown = iptables -D FORWARD -i $SERVER_WG_NIC -j ACCEPT; iptables -t nat -D POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE; ip6tables -D FORWARD -i $SERVER_WG_NIC -j ACCEPT; ip6tables -t nat -D POSTROUTING -o $SERVER_PUB_NIC -j MASQUERADE" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
+fi
 
 # Add the client as a peer to the server
 echo "[Peer]
