@@ -97,7 +97,7 @@ elif [[ "$OS" = 'fedora' ]]; then
     if [[ "$VERSION_ID" -lt 32 ]]; then
         dnf install -y dnf-plugins-core
         dnf copr enable -y jdoss/wireguard
-        dnf install -y wireguard-dkms 
+        dnf install -y wireguard-dkms
     fi
     dnf install -y wireguard-tools iptables qrencode
 elif [[ "$OS" = 'centos' ]]; then
@@ -127,8 +127,8 @@ ListenPort = $SERVER_PORT
 PrivateKey = $SERVER_PRIV_KEY" > "/etc/wireguard/$SERVER_WG_NIC.conf"
 
 if [ -x "$(command -v firewall-cmd)" ]; then
-    FIREWALLD_IPV4_ADDRESS=$(echo $SERVER_WG_IPV4 | cut -d"." -f1-3)".0"
-    FIREWALLD_IPV6_ADDRESS=$(echo $SERVER_WG_IPV6 | sed 's/:[^:]*$/:0/')
+    FIREWALLD_IPV4_ADDRESS=$(echo "$SERVER_WG_IPV4" | cut -d"." -f1-3)".0"
+    FIREWALLD_IPV6_ADDRESS=$(echo "$SERVER_WG_IPV6" | sed 's/:[^:]*$/:0/')
     echo "PostUp = firewall-cmd --add-port $SERVER_PORT/udp && firewall-cmd --add-rich-rule='rule family=ipv4 source address=$FIREWALLD_IPV4_ADDRESS/24 masquerade' && firewall-cmd --add-rich-rule='rule family=ipv6 source address=$FIREWALLD_IPV6_ADDRESS/24 masquerade'
 PostDown = firewall-cmd --remove-port $SERVER_PORT/udp && firewall-cmd --remove-rich-rule='rule family=ipv4 source address=$FIREWALLD_IPV4_ADDRESS/24 masquerade' && firewall-cmd --remove-rich-rule='rule family=ipv6 source address=$FIREWALLD_IPV6_ADDRESS/24 masquerade'" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
 else
