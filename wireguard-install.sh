@@ -161,6 +161,23 @@ sysctl --system
 systemctl start "wg-quick@$SERVER_WG_NIC"
 systemctl enable "wg-quick@$SERVER_WG_NIC"
 
-echo "Here is your client config file as a QR Code:"
+echo -e "\nHere is your client config file as a QR Code:"
 
 qrencode -t ansiutf8 -l L < "$HOME/$SERVER_WG_NIC-client.conf"
+
+# Check if WireGuard is running
+systemctl is-active --quiet wg-quick@$SERVER_WG_NIC
+WG_RUNNING=$?
+
+# Warn user about kernel version mismatch with headers
+if [[ "$OS" =~ (fedora|centos) ]] && [[ $WG_RUNNING -ne 0 ]]; then
+    echo -e "\nWARNING: WireGuard does not seem to be running."
+    echo "Due to kernel mismatch issues on $OS, WireGuard might work if your system is out of date."
+    echo "You can check if WireGuard is running with: systemctl status wg-quick@$SERVER_WG_NIC"
+    echo "If you get something like \"Cannot find device wg0\", please run:"
+    if [[ "$OS" = 'fedora' ]]; then
+        echo "dnf update -y && reboot"
+    elif [[ "$OS" = 'centos' ]]; then
+        echo "yum update -y && reboot"
+    fi
+fi
