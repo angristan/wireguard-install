@@ -188,8 +188,8 @@ if [[ "$OS" =~ (fedora|centos) ]] && [[ $WG_RUNNING -ne 0 ]]; then
     echo "You can check if WireGuard is running with: systemctl status wg-quick@$SERVER_WG_NIC"
     echo "If you get something like \"Cannot find device wg0\", please run:"
     if [[ "$OS" = 'fedora' ]]; then
-        echo "dnf update -y && reboot"
+        echo "dnf update -y"
     elif [[ "$OS" = 'centos' ]]; then
-        echo "yum update -y && reboot"
+        echo "yum update -y"
     fi
 fi
