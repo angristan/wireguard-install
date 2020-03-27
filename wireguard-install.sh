@@ -137,7 +137,8 @@ PostDown = iptables -D FORWARD -i $SERVER_WG_NIC -j ACCEPT; iptables -t nat -D P
 fi
 
 # Add the client as a peer to the server
-echo "[Peer]
+echo "
+[Peer]
 PublicKey = $CLIENT_PUB_KEY
 AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
 
@@ -148,7 +149,8 @@ Address = $CLIENT_WG_IPV4/24,$CLIENT_WG_IPV6/64
 DNS = $CLIENT_DNS_1,$CLIENT_DNS_2" > "$HOME/$SERVER_WG_NIC-client.conf"
 
 # Add the server as a peer to the client
-echo "[Peer]
+echo "
+[Peer]
 PublicKey = $SERVER_PUB_KEY
 Endpoint = $ENDPOINT
 AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client.conf"
