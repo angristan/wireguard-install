@@ -52,7 +52,8 @@ read -rp "Server's WireGuard IPv4 " -e -i "$SERVER_WG_IPV4" SERVER_WG_IPV4
 SERVER_WG_IPV6="fd42:42:42::1"
 read -rp "Server's WireGuard IPv6 " -e -i "$SERVER_WG_IPV6" SERVER_WG_IPV6
 
-SERVER_PORT=51820
+# Generate random number within private ports range
+SERVER_PORT=$(shuf -i49152-65535 -n1)
 read -rp "Server's WireGuard port " -e -i "$SERVER_PORT" SERVER_PORT
 
 CLIENT_WG_IPV4="10.66.66.2"
