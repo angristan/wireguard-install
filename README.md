@@ -35,6 +35,14 @@ chmod +x wireguard-install.sh
 ./wireguard-install.sh
 ```
 
-It will install WireGuard (kernel module and tools) on the server, configure it, create a systemd service and a client configuration file. Multiple clients are not yet supported. (WIP!)
+It will install WireGuard (kernel module and tools) on the server, configure it, create a systemd service and a client configuration file.
+
+To generate more client files, run the following:
+
+```sh
+./wireguard-install.sh add_client
+```
+
+Make sure you choose different IPs for you clients.
 
 Contributions are welcome!
