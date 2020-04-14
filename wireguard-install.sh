@@ -130,7 +130,7 @@ echo "Remove WireGuard Server ($distribution)"
     elif [ "$distribution" = "Debian" ] || [ "$distribution" = "Raspbian" ]; then
       systemctl stop wg-quick@wg0.service > /dev/null 2>&1
       systemctl disable wg-quick@wg0.service > /dev/null 2>&1
-      apt-get install -y wireguard iptables --force-yes > /dev/null 2>&1
+      apt-get remove -y wireguard --force-yes > /dev/null 2>&1
       rm -rf /etc/wireguard
       rm -f /etc/sysctl.d/wg.conf
       rm -f /etc/apt/sources.list.d/unstable.list
