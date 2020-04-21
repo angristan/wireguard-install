@@ -31,6 +31,7 @@ function addClient () {
     # Generate key pair for the client
     CLIENT_PRIV_KEY=$(wg genkey)
     CLIENT_PUB_KEY=$(echo "$CLIENT_PRIV_KEY" | wg pubkey)
+    CLIENT_PRE_SHARED_KEY=$(wg genpsk)
 
     # Create client file and add the server as a peer
     echo "[Interface]
@@ -40,14 +41,14 @@ DNS = $CLIENT_DNS_1,$CLIENT_DNS_2
 
 [Peer]
 PublicKey = $SERVER_PUB_KEY
-PresharedKey = $SYMM_PRE_KEY
+PresharedKey = $CLIENT_PRE_SHARED_KEY
 Endpoint = $ENDPOINT
 AllowedIPs = 0.0.0.0/0,::/0" >> "$HOME/$SERVER_WG_NIC-client-$CLIENT_NAME.conf"
 
     # Add the client as a peer to the server
     echo -e "\n[Peer]
 PublicKey = $CLIENT_PUB_KEY
-PresharedKey = $SYMM_PRE_KEY
+PresharedKey = $CLIENT_PRE_SHARED_KEY
 AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >> "/etc/wireguard/$SERVER_WG_NIC.conf"
 
     systemctl restart "wg-quick@$SERVER_WG_NIC"
@@ -173,8 +174,7 @@ SERVER_WG_IPV4=$SERVER_WG_IPV4
 SERVER_WG_IPV6=$SERVER_WG_IPV6
 SERVER_PORT=$SERVER_PORT
 SERVER_PRIV_KEY=$SERVER_PRIV_KEY
-SERVER_PUB_KEY=$SERVER_PUB_KEY
-SYMM_PRE_KEY=$( wg genpsk )" > /etc/wireguard/params
+SERVER_PUB_KEY=$SERVER_PUB_KEY" > /etc/wireguard/params
 
 source /etc/wireguard/params
 
