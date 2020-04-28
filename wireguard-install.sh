@@ -79,7 +79,7 @@ if [ "$(systemd-detect-virt)" == "lxc" ]; then
     exit
 fi
 
-if [[ $1 == "add_client" ]];then
+if [[ $1 == "add-client" ]];then
     if [[ -e /etc/wireguard ]]; then
         addClient
         exit 0
@@ -88,7 +88,7 @@ if [[ $1 == "add_client" ]];then
         exit 1
     fi
 elif [[ -e /etc/wireguard ]]; then
-    echo "WireGuard is already installed. Run with 'add_client' to add a client."
+    echo "WireGuard is already installed. Run with 'add-client' to add a client."
     exit 1
 fi
 

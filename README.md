@@ -40,7 +40,7 @@ It will install WireGuard (kernel module and tools) on the server, configure it,
 To generate more client files, run the following:
 
 ```sh
-./wireguard-install.sh add_client
+./wireguard-install.sh add-client
 ```
 
 Make sure you choose different IPs for you clients.
