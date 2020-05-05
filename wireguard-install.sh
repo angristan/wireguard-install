@@ -39,7 +39,14 @@ function addClient() {
 	echo "[Interface]
 PrivateKey = $CLIENT_PRIV_KEY
 Address = $CLIENT_WG_IPV4/24,$CLIENT_WG_IPV6/64
-DNS = $CLIENT_DNS_1,$CLIENT_DNS_2
+
+# Fix for bug where trailing comma is left if no secondary DNS specified
+if [ -z "$CLIENT_DNS_2" ]
+then
+	DNS = $CLIENT_DNS_1,$CLIENT_DNS_2
+else
+	DNS = $CLIENT_DNS_1
+fi
 
 [Peer]
 PublicKey = $SERVER_PUB_KEY
