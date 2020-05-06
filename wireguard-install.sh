@@ -41,7 +41,7 @@ PrivateKey = $CLIENT_PRIV_KEY
 Address = $CLIENT_WG_IPV4/24,$CLIENT_WG_IPV6/64
 
 # Fix for bug where trailing comma is left if no secondary DNS specified
-if [ -z "$CLIENT_DNS_2" ]
+if [ -z '$CLIENT_DNS_2' ]
 then
 	DNS = $CLIENT_DNS_1,$CLIENT_DNS_2
 else
@@ -220,7 +220,7 @@ WG_RUNNING=$?
 # Warn user about kernel version mismatch with headers
 if [[ $OS =~ (fedora|centos) ]] && [[ $WG_RUNNING -ne 0 ]]; then
 	echo -e "\nWARNING: WireGuard does not seem to be running."
-	echo "Due to kernel mismatch issues on $OS, WireGuard might work if your system is out of date."
+	echo "Due to kernel mismatch issues on $OS, WireGuard might not work if your system is out of date."
 	echo "You can check if WireGuard is running with: systemctl status wg-quick@$SERVER_WG_NIC"
 	echo 'If you get something like "Cannot find device wg0", please run:'
 	if [[ $OS == 'fedora' ]]; then
