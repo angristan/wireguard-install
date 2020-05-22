@@ -41,7 +41,7 @@ PrivateKey = $CLIENT_PRIV_KEY
 Address = $CLIENT_WG_IPV4/24,$CLIENT_WG_IPV6/64"
 
 # Fix for bug where trailing comma is left if no secondary DNS specified
-if [ -z '$CLIENT_DNS_2' ]
+if [ -z "$CLIENT_DNS_2" ]
 then
 	echo "DNS = $CLIENT_DNS_1,$CLIENT_DNS_2"
 else
