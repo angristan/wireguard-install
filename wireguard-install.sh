@@ -158,7 +158,7 @@ elif [[ $OS == 'centos' ]]; then
 	yum -y install wireguard-dkms wireguard-tools iptables qrencode
 elif [[ $OS == 'arch' ]]; then
 	pacman -S --noconfirm linux-headers
-	pacman -S --noconfirm wireguard-tools iptables wireguard-arch qrencode
+	pacman -S --noconfirm wireguard-tools iptables qrencode
 fi
 
 # Make sure the directory exists (this does not seem the be the case on fedora)
