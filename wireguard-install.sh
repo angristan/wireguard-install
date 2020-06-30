@@ -90,8 +90,8 @@ function uninstall() {
 checkOS
 
 # get WireGuard interface name
-SERVER_WG_NIC="wg0"
-read -rp "WireGuard interface name: " -e -i "$SERVER_WG_NIC" SERVER_WG_NIC
+
+source /etc/wireguard/params
 
 # stop wireguard interface
 ip link set down "$SERVER_WG_NIC"	
@@ -119,11 +119,11 @@ elif [[ $OS == 'arch' ]]; then
 fi
 
 # Delete /etc/wireguard
-rm -rfv /etc/wireguard > /dev/null 2>&1
+rm -rf /etc/wireguard > /dev/null 2>&1
 
 if [[ -e /etc/sysctl.d/wg.conf ]]; then
     # Delete wg.conf
-    rm -fv /etc/sysctl.d/wg.conf
+    rm -f /etc/sysctl.d/wg.conf
 fi
 
 sysctl --system
@@ -136,7 +136,7 @@ ip link delete "$SERVER_WG_NIC"
 systemctl is-active --quiet "wg-quick@$SERVER_WG_NIC"
 WG_RUNNING=$?
 
-if [[ $WG_RUNNING -ne 0 ]]; then
+if [[ $WG_RUNNING -eq 0 ]]; then
     echo "WireGuard failed to uninstall properly."
     exit 1
 else
@@ -176,7 +176,7 @@ if [[ $1 == "add-client" ]]; then
 elif [[ $1 == "uninstall" ]]; then
 	if [[ -e /etc/wireguard ]]; then
 		uninstall
-        exit 0
+        	exit 0
 	else
 		echo "WireGuard is not installed."
 		exit 1
