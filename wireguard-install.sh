@@ -80,6 +80,69 @@ AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >>"/etc/wireguard/$SERVER_W
 	echo "It is also available in $HOME/$SERVER_WG_NIC-client-$CLIENT_NAME.conf"
 }
 
+function uninstall() {
+
+## To uninstall wireguard and its setup ##
+
+
+#Check OS type
+checkOS
+
+#get WireGuard interface name
+SERVER_WG_NIC="wg0"
+read -rp "WireGuard interface name: " -e -i "$SERVER_WG_NIC" SERVER_WG_NIC
+
+ip link set down "$SERVER_WG_NIC"		#stop wireguard interface
+
+#Remove wireguard tool and qrencode
+if [[ $OS == 'ubuntu' ]]; then
+    apt-get remove --purge -y wireguard qrencode
+	add-apt-repository -y -r ppa:wireguard/wireguard
+	apt-get autoremove -y
+elif [[ $OS == 'debian' ]]; then
+	apt-get remove --purge -y wireguard qrencode
+	apt-get autoremove -y
+elif [[ $OS == 'fedora' ]]; then
+    dnf remove -y wireguard-tools qrencode
+	if [[ $VERSION_ID -lt 32 ]]; then
+		dnf remove -y wireguard-dkms
+		dnf copr disable -y jdoss/wireguard
+	fi
+	dnf autoremove -y
+elif [[ $OS == 'centos' ]]; then
+	yum -y remove wireguard-dkms wireguard-tools qrencode
+	yum -y autoremove
+elif [[ $OS == 'arch' ]]; then
+	pacman -Rs --noconfirm wireguard-tools wireguard-arch qrencode
+fi
+
+#Delete /etc/wireguard
+rm -rfv /etc/wireguard > /dev/null 2>&1
+
+if [[ -e /etc/sysctl.d/wg.conf ]]; then
+    #Delete wg.conf
+    rm -fv /etc/sysctl.d/wg.conf
+fi
+
+sysctl --system
+
+systemctl stop "wg-quick@$SERVER_WG_NIC"
+systemctl disable "wg-quick@$SERVER_WG_NIC"
+ip link delete "$SERVER_WG_NIC"	#delete wireguard interface
+# Check if WireGuard is running
+systemctl is-active --quiet "wg-quick@$SERVER_WG_NIC"
+WG_RUNNING=$?
+
+if [[ $WG_RUNNING -ne 0 ]]; then
+    echo "WireGuard failed to uninstall properly."
+    exit 1
+else
+    echo "WireGuard uninstalled successfully."
+    exit 0
+fi
+
+}
+
 if [ "$EUID" -ne 0 ]; then
 	echo "You need to run this script as root"
 	exit 1
@@ -107,8 +170,16 @@ if [[ $1 == "add-client" ]]; then
 		echo "Please install WireGuard first."
 		exit 1
 	fi
+elif [[ $1 == "uninstall" ]]; then
+	if [[ -e /etc/wireguard ]]; then
+		uninstall
+        exit 0
+	else
+		echo "WireGuard is not installed."
+		exit 1
+	fi
 elif [[ -e /etc/wireguard ]]; then
-	echo "WireGuard is already installed. Run with 'add-client' to add a client."
+	echo "WireGuard is already installed. Run with 'add-client' to add a client or 'uninstall' to remove."
 	exit 1
 fi
 
