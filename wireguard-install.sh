@@ -1,5 +1,23 @@
 #!/bin/bash
 
+function checkOS() {
+    # Check OS version
+    if [[ -e /etc/debian_version ]]; then
+        source /etc/os-release
+        OS=$ID # debian or ubuntu
+    elif [[ -e /etc/fedora-release ]]; then
+        source /etc/os-release
+        OS=$ID
+    elif [[ -e /etc/centos-release ]]; then
+        OS=centos
+    elif [[ -e /etc/arch-release ]]; then
+        OS=arch
+    else
+        echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
+        exit 1
+    fi
+}
+
 function addClient() {
 	# Load params
 	source /etc/wireguard/params
@@ -94,22 +112,7 @@ elif [[ -e /etc/wireguard ]]; then
 	exit 1
 fi
 
-# Check OS version
-if [[ -e /etc/debian_version ]]; then
-	source /etc/os-release
-	OS=$ID # debian or ubuntu
-elif [[ -e /etc/fedora-release ]]; then
-	source /etc/os-release
-	OS=$ID
-elif [[ -e /etc/centos-release ]]; then
-	OS=centos
-elif [[ -e /etc/arch-release ]]; then
-	OS=arch
-else
-	echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
-	exit 1
-fi
-
+checkOS
 # Detect public IPv4 address and pre-fill for the user
 SERVER_PUB_IPV4=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
 read -rp "IPv4 or IPv6 public address: " -e -i "$SERVER_PUB_IPV4" SERVER_PUB_IP
