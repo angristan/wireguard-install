@@ -226,15 +226,34 @@ AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >>"/etc/wireguard/$SERVER_W
 	echo "It is also available in $HOME/$SERVER_WG_NIC-client-$CLIENT_NAME.conf"
 }
 
-if [[ $1 == "add-client" ]]; then
-	if [[ -e /etc/wireguard/params ]]; then
+function manageMenu() {
+	echo "Welcome to WireGuard-install!"
+	echo "The git repository is available at: https://github.com/angristan/wireguard-install"
+	echo ""
+	echo "It looks like WireGuard is already installed."
+	echo ""
+	echo "What do you want to do?"
+	echo "   1) Add a new user"
+	echo "   2) Exit"
+	until [[ $MENU_OPTION =~ ^[1-2]$ ]]; do
+		read -rp "Select an option [1-2]: " MENU_OPTION
+	done
+	case $MENU_OPTION in
+	1)
 		addClient
+		;;
+	2)
 		exit 0
-	else
-		echo "Please install and configure WireGuard first."
-		exit 1
-	fi
-elif [[ -e /etc/wireguard/params ]]; then
-	echo "WireGuard is already installed. Run with 'add-client' to add a client."
-	exit 1
+		;;
+	esac
+}
+
+# Check for root, virt, OS...
+initialCheck
+
+# Check if WireGuard is already installed
+if [[ -e /etc/wireguard/params ]]; then
+	manageMenu
+else
+	installWireGuard
 fi
