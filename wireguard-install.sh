@@ -160,11 +160,11 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 		fi
 	fi
 
-	addClient
+	newClient
 	echo "If you want to add more clients, you simply need to run this script another time!"
 }
 
-function addClient() {
+function newClient() {
 	# Load params
 	source /etc/wireguard/params
 
@@ -240,7 +240,7 @@ function manageMenu() {
 	done
 	case $MENU_OPTION in
 	1)
-		addClient
+		newClient
 		;;
 	2)
 		exit 0
