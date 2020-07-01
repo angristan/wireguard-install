@@ -41,6 +41,12 @@ function checkOS() {
 	fi
 }
 
+function initialCheck() {
+	isRoot
+	checkVirt
+	checkOS
+}
+
 function addClient() {
 	# Load params
 	source /etc/wireguard/params
