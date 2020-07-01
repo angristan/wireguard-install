@@ -48,6 +48,11 @@ function initialCheck() {
 }
 
 function installWireGuard() {
+	echo "Welcome to the WireGuard installer!"
+	echo "The git repository is available at: https://github.com/angristan/wireguard-install"
+	echo ""
+	echo "I need to ask you a few questions before starting the setup."
+	echo "You can leave the default options and just press enter if you are ok with them."
 
 	# Detect public IPv4 address and pre-fill for the user
 	SERVER_PUB_IPV4=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
