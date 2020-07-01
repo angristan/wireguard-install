@@ -7,6 +7,22 @@ function isRoot() {
 	fi
 }
 
+function checkVirt() {
+	if [ "$(systemd-detect-virt)" == "openvz" ]; then
+		echo "OpenVZ is not supported"
+		exit 1
+	fi
+
+	if [ "$(systemd-detect-virt)" == "lxc" ]; then
+		echo "LXC is not supported (yet)."
+		echo "WireGuard can technically run in an LXC container,"
+		echo "but the kernel module has to be installed on the host,"
+		echo "the container has to be run with some specific parameters"
+		echo "and only the tools need to be installed in the container."
+		exit 1
+	fi
+}
+
 function addClient() {
 	# Load params
 	source /etc/wireguard/params
@@ -69,19 +85,6 @@ AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >>"/etc/wireguard/$SERVER_W
 	echo "It is also available in $HOME/$SERVER_WG_NIC-client-$CLIENT_NAME.conf"
 }
 
-if [ "$(systemd-detect-virt)" == "openvz" ]; then
-	echo "OpenVZ is not supported"
-	exit
-fi
-
-if [ "$(systemd-detect-virt)" == "lxc" ]; then
-	echo "LXC is not supported (yet)."
-	echo "WireGuard can technically run in an LXC container,"
-	echo "but the kernel module has to be installed on the host,"
-	echo "the container has to be run with some specific parameters"
-	echo "and only the tools need to be installed in the container."
-	exit
-fi
 
 if [[ $1 == "add-client" ]]; then
 	if [[ -e /etc/wireguard/params ]]; then
