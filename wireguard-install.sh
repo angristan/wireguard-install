@@ -23,6 +23,24 @@ function checkVirt() {
 	fi
 }
 
+function checkOS() {
+	# Check OS version
+	if [[ -e /etc/debian_version ]]; then
+		source /etc/os-release
+		OS=$ID # debian or ubuntu
+	elif [[ -e /etc/fedora-release ]]; then
+		source /etc/os-release
+		OS=$ID
+	elif [[ -e /etc/centos-release ]]; then
+		OS=centos
+	elif [[ -e /etc/arch-release ]]; then
+		OS=arch
+	else
+		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
+		exit 1
+	fi
+}
+
 function addClient() {
 	# Load params
 	source /etc/wireguard/params
@@ -96,22 +114,6 @@ if [[ $1 == "add-client" ]]; then
 	fi
 elif [[ -e /etc/wireguard/params ]]; then
 	echo "WireGuard is already installed. Run with 'add-client' to add a client."
-	exit 1
-fi
-
-# Check OS version
-if [[ -e /etc/debian_version ]]; then
-	source /etc/os-release
-	OS=$ID # debian or ubuntu
-elif [[ -e /etc/fedora-release ]]; then
-	source /etc/os-release
-	OS=$ID
-elif [[ -e /etc/centos-release ]]; then
-	OS=centos
-elif [[ -e /etc/arch-release ]]; then
-	OS=arch
-else
-	echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
 	exit 1
 fi
 
