@@ -14,10 +14,10 @@ function addClient() {
 
 	# count peers and increment the suggested client IP
 	peersCount=$(grep -c 'Peer' /etc/wireguard/"$SERVER_WG_NIC".conf)
-	CLIENT_WG_IPV4="10.66.66.$((peersCount+2))"
+	CLIENT_WG_IPV4="${SERVER_WG_IPV4: : -1}$((peersCount+2))"
 	read -rp "Client's WireGuard IPv4 " -e -i "$CLIENT_WG_IPV4" CLIENT_WG_IPV4
 
-	CLIENT_WG_IPV6="fd42:42:42::$((peersCount+2))"
+	CLIENT_WG_IPV6="${SERVER_WG_IPV6: : -1}$((peersCount+2))"
 	read -rp "Client's WireGuard IPv6 " -e -i "$CLIENT_WG_IPV6" CLIENT_WG_IPV6
 
 	# Adguard DNS by default
