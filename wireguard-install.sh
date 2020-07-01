@@ -1,5 +1,12 @@
 #!/bin/bash
 
+function isRoot() {
+	if [ "$EUID" -ne 0 ]; then
+		echo "You need to run this script as root"
+		exit 1
+	fi
+}
+
 function addClient() {
 	# Load params
 	source /etc/wireguard/params
@@ -61,11 +68,6 @@ AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >>"/etc/wireguard/$SERVER_W
 
 	echo "It is also available in $HOME/$SERVER_WG_NIC-client-$CLIENT_NAME.conf"
 }
-
-if [ "$EUID" -ne 0 ]; then
-	echo "You need to run this script as root"
-	exit 1
-fi
 
 if [ "$(systemd-detect-virt)" == "openvz" ]; then
 	echo "OpenVZ is not supported"
