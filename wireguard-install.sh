@@ -174,14 +174,14 @@ if [[ $1 == "add-client" ]]; then
 		exit 1
 	fi
 elif [[ $1 == "uninstall" ]]; then
-	if [[ -e /etc/wireguard ]]; then
+	if [[ -e /etc/wireguard/params ]]; then
 		uninstall
         	exit 0
 	else
 		echo "WireGuard is not installed."
 		exit 1
 	fi
-elif [[ -e /etc/wireguard ]]; then
+elif [[ -e /etc/wireguard/params ]]; then
 	echo "WireGuard is already installed. Run with 'add-client' to add a client or 'uninstall' to remove."
 	exit 1
 fi
