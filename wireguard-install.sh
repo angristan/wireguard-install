@@ -118,8 +118,6 @@ SERVER_PORT=$SERVER_PORT
 SERVER_PRIV_KEY=$SERVER_PRIV_KEY
 SERVER_PUB_KEY=$SERVER_PUB_KEY" >/etc/wireguard/params
 
-	source /etc/wireguard/params
-
 	# Add server interface
 	echo "[Interface]
 Address = $SERVER_WG_IPV4/24,$SERVER_WG_IPV6/64
