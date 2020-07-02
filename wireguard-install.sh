@@ -5,7 +5,7 @@ function checkOS() {
     if [[ -e /etc/debian_version ]]; then
         source /etc/os-release
 	# debian or ubuntu
-        OS=$ID 
+        OS=$ID
     elif [[ -e /etc/fedora-release ]]; then
         source /etc/os-release
         OS=$ID
@@ -93,8 +93,9 @@ checkOS
 
 source /etc/wireguard/params
 
-# stop wireguard interface
-ip link set down "$SERVER_WG_NIC"	
+# stop wireguard service. It will stop and delete wg interface
+systemctl stop "wg-quick@$SERVER_WG_NIC"
+systemctl disable "wg-quick@$SERVER_WG_NIC"
 
 # Remove wireguard tool and qrencode
 if [[ $OS == 'ubuntu' ]]; then
@@ -121,17 +122,12 @@ fi
 # Delete /etc/wireguard
 rm -rf /etc/wireguard > /dev/null 2>&1
 
-if [[ -e /etc/sysctl.d/wg.conf ]]; then
-    # Delete wg.conf
-    rm -f /etc/sysctl.d/wg.conf
-fi
+# Delete wg.conf
+rm -f /etc/sysctl.d/wg.conf
+
 
 sysctl --system
 
-systemctl stop "wg-quick@$SERVER_WG_NIC"
-systemctl disable "wg-quick@$SERVER_WG_NIC"
-# delete wireguard interface
-ip link delete "$SERVER_WG_NIC"	
 # Check if WireGuard is running
 systemctl is-active --quiet "wg-quick@$SERVER_WG_NIC"
 WG_RUNNING=$?
@@ -176,7 +172,7 @@ if [[ $1 == "add-client" ]]; then
 elif [[ $1 == "uninstall" ]]; then
 	if [[ -e /etc/wireguard/params ]]; then
 		uninstall
-        	exit 0
+        exit 0
 	else
 		echo "WireGuard is not installed."
 		exit 1
