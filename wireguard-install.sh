@@ -63,8 +63,10 @@ function installWireGuard() {
 	read -rp "IPv4 or IPv6 public address: " -e -i "$SERVER_PUB_IP" SERVER_PUB_IP
 
 	# Detect public interface and pre-fill for the user
-	SERVER_PUB_NIC="$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)"
-	read -rp "Public interface: " -e -i "$SERVER_PUB_NIC" SERVER_PUB_NIC
+	SERVER_NIC="$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)"
+	until [[ "$SERVER_PUB_NIC" =~ ^[a-zA-Z0-9_]+$ ]]; do
+		read -rp "Public interface: " -e -i "$SERVER_NIC" SERVER_PUB_NIC
+	done
 
 	until [[ "$SERVER_WG_NIC" =~ ^[a-zA-Z0-9_]+$ ]]; do
 		read -rp "WireGuard interface name: " -e -i wg0 SERVER_WG_NIC
