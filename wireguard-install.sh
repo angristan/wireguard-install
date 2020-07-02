@@ -186,11 +186,11 @@ function newClient() {
 	fi
 
 	until [[ "$CLIENT_WG_IPV4" =~ ^([0-9]{1,3}\.?){4}$ ]]; do
-		read -rp "Client's WireGuard IPv4: " -e -i 10.66.66.2 CLIENT_WG_IPV4
+		read -rp "Client's WireGuard IPv4: " -e -i "${SERVER_WG_IPV4: : -1}"2 CLIENT_WG_IPV4
 	done
 
 	until [[ "$CLIENT_WG_IPV6" =~ ^([a-f0-9]{1,4}:?:?){3,5} ]]; do
-		read -rp "Client's WireGuard IPv6 : " -e -i fd42:42:42::2 CLIENT_WG_IPV6
+		read -rp "Client's WireGuard IPv6 : " -e -i "${SERVER_WG_IPV6: : -1}"2 CLIENT_WG_IPV6
 	done
 
 	# Adguard DNS by default
