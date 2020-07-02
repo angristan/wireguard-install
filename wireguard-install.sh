@@ -27,8 +27,15 @@ function addClient() {
 		fi
 	done
 
+	for DOT_IP in {2..254}; do
+		DOT_EXISTS=$(grep -c "${SERVER_WG_IPV4: : -1}${DOT_IP}" "/etc/wireguard/$SERVER_WG_NIC.conf")
+		if [[ $DOT_EXISTS == '0' ]]; then
+			break
+		fi
+	done
+
 	until [[ "$IPV4_EXISTS" == '0' ]]; do
-		read -rp "Client's WireGuard IPv4 " -e -i "${SERVER_WG_IPV4: : -1}2" CLIENT_WG_IPV4
+		read -rp "Client's WireGuard IPv4: " -e -i "${SERVER_WG_IPV4: : -1}${DOT_IP}" CLIENT_WG_IPV4
 		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4" "/etc/wireguard/$SERVER_WG_NIC.conf")
 
 		if [[ $IPV4_EXISTS == '1' ]]; then
@@ -39,7 +46,7 @@ function addClient() {
 	done
 
 	until [[ "$IPV6_EXISTS" == '0' ]]; do
-		read -rp "Client's WireGuard IPv6 " -e -i "${SERVER_WG_IPV6: : -1}2" CLIENT_WG_IPV6
+		read -rp "Client's WireGuard IPv6: " -e -i "${SERVER_WG_IPV6: : -1}${DOT_IP}" CLIENT_WG_IPV6
 		IPV6_EXISTS=$(grep -c "$CLIENT_WG_IPV6" "/etc/wireguard/$SERVER_WG_NIC.conf")
 
 		if [[ $IPV6_EXISTS == '1' ]]; then
