@@ -12,6 +12,13 @@ function addClient() {
 		ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
 	fi
 
+	echo ""
+	echo "Tell me a name for the client."
+	echo "Use one word only, no special characters."
+	until [[ "$CLIENT_NAME" =~ ^[a-zA-Z0-9_]+$ ]]; do
+		read -rp "Client name: " -e CLIENT_NAME
+	done
+
 	CLIENT_WG_IPV4="10.66.66.2"
 	read -rp "Client's WireGuard IPv4 " -e -i "$CLIENT_WG_IPV4" CLIENT_WG_IPV4
 
@@ -24,11 +31,6 @@ function addClient() {
 
 	CLIENT_DNS_2="176.103.130.131"
 	read -rp "Second DNS resolver to use for the client: " -e -i "$CLIENT_DNS_2" CLIENT_DNS_2
-
-	CLIENT_NAME=$(
-		head /dev/urandom | tr -dc A-Za-z0-9 | head -c 10
-		echo ''
-	)
 
 	# Generate key pair for the client
 	CLIENT_PRIV_KEY=$(wg genkey)
