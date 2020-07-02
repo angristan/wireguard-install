@@ -203,11 +203,7 @@ function newClient() {
 	# shellcheck disable=SC1091
 	source /etc/wireguard/params
 
-	if [[ $SERVER_PUB_IP =~ .*:.* ]]; then
-		ENDPOINT="[$SERVER_PUB_IP]:$SERVER_PORT"
-	else
-		ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
-	fi
+	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
 
 	printf "\n"
 	until [[ "$CLIENT_WG_IPV4" =~ ^([0-9]{1,3}\.?){4}$ ]]; do
