@@ -76,8 +76,10 @@ function installWireGuard() {
 	read -rp "Server's WireGuard IPv6: " -e -i "$SERVER_WG_IPV6" SERVER_WG_IPV6
 
 	# Generate random number within private ports range
-	SERVER_PORT=$(shuf -i49152-65535 -n1)
-	read -rp "Server's WireGuard port: " -e -i "$SERVER_PORT" SERVER_PORT
+	RANDOM_PORT=$(shuf -i49152-65535 -n1)
+	until [[ $SERVER_PORT =~ ^[0-9]+$ ]] && [ "$SERVER_PORT" -ge 1 ] && [ "$SERVER_PORT" -le 65535 ]; do
+		read -rp "Server's WireGuard port [1-65535]: " -e -i "$RANDOM_PORT" SERVER_PORT
+	done
 
 	# Install WireGuard tools and module
 	if [[ $OS == 'ubuntu' ]]; then
