@@ -185,11 +185,13 @@ function newClient() {
 		ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
 	fi
 
-	CLIENT_WG_IPV4="10.66.66.2"
-	read -rp "Client's WireGuard IPv4 " -e -i "$CLIENT_WG_IPV4" CLIENT_WG_IPV4
+	until [[ "$CLIENT_WG_IPV4" =~ ^([0-9]{1,3}\.?){4}$ ]]; do
+		read -rp "Client's WireGuard IPv4: " -e -i 10.66.66.2 CLIENT_WG_IPV4
+	done
 
-	CLIENT_WG_IPV6="fd42:42:42::2"
-	read -rp "Client's WireGuard IPv6 " -e -i "$CLIENT_WG_IPV6" CLIENT_WG_IPV6
+	until [[ "$CLIENT_WG_IPV6" =~ ^([a-f0-9]{1,4}:?:?){3,5} ]]; do
+		read -rp "Client's WireGuard IPv6 : " -e -i fd42:42:42::2 CLIENT_WG_IPV6
+	done
 
 	# Adguard DNS by default
 	until [[ $CLIENT_DNS_1 =~ ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
