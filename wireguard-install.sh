@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Secure WireGuard server installer for Debian, Ubuntu, CentOS, Fedora and Arch Linux
+# https://github.com/angristan/wireguard-install
+
 function isRoot() {
 	if [ "$EUID" -ne 0 ]; then
 		echo "You need to run this script as root"
