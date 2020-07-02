@@ -92,6 +92,11 @@ function installQuestions() {
 	until [[ $SERVER_PORT =~ ^[0-9]+$ ]] && [ "$SERVER_PORT" -ge 1 ] && [ "$SERVER_PORT" -le 65535 ]; do
 		read -rp "Server's WireGuard port [1-65535]: " -e -i "$RANDOM_PORT" SERVER_PORT
 	done
+
+	echo ""
+	echo "Okay, that was all I needed. We are ready to setup your WireGuard server now."
+	echo "You will be able to generate a client at the end of the installation."
+	read -n1 -r -p "Press any key to continue..."
 }
 
 function installWireGuard() {
