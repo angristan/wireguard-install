@@ -192,11 +192,15 @@ function newClient() {
 	read -rp "Client's WireGuard IPv6 " -e -i "$CLIENT_WG_IPV6" CLIENT_WG_IPV6
 
 	# Adguard DNS by default
-	CLIENT_DNS_1="176.103.130.130"
-	read -rp "First DNS resolver to use for the client: " -e -i "$CLIENT_DNS_1" CLIENT_DNS_1
-
-	CLIENT_DNS_2="176.103.130.131"
-	read -rp "Second DNS resolver to use for the client: " -e -i "$CLIENT_DNS_2" CLIENT_DNS_2
+	until [[ $CLIENT_DNS_1 =~ ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
+		read -rp "First DNS resolver to use for the client: " -e -i 176.103.130.130 CLIENT_DNS_1
+	done
+	until [[ $CLIENT_DNS_2 =~ ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
+		read -rp "Second DNS resolver to use for the client (optional): " -e -i 176.103.130.131 CLIENT_DNS_2
+		if [[ $CLIENT_DNS_2 == "" ]]; then
+			CLIENT_DNS_2=$CLIENT_DNS_1
+		fi
+	done
 
 	CLIENT_NAME=$(
 		head /dev/urandom | tr -dc A-Za-z0-9 | head -c 10
