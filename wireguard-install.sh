@@ -15,17 +15,17 @@ function addClient() {
 	echo ""
 	echo "Tell me a name for the client."
 	echo "Use one word only, no special characters."
-	until [[ "$CLIENT_NAME" =~ ^[a-zA-Z0-9_]+$ ]]; do
+
+	until [[ "$CLIENT_NAME" =~ ^[a-zA-Z0-9_]+$ && "$CLIENT_EXISTS" == '0' ]]; do
 		read -rp "Client name: " -e CLIENT_NAME
+		CLIENT_EXISTS=$(grep -c -E "^### Client $CLIENT_NAME\$" "/etc/wireguard/$SERVER_WG_NIC.conf")
+
+		if [[ $CLIENT_EXISTS == '1' ]]; then
+			echo ""
+			echo "A client with the specified name was already created, please choose another name."
+			echo ""
+		fi
 	done
-
-	CLIENT_EXISTS=$(grep -c -E "^### Client $CLIENT_NAME\$" "/etc/wireguard/$SERVER_WG_NIC.conf")
-
-	if [[ $CLIENT_EXISTS == '1' ]]; then
-		echo ""
-		echo "A client with the specified name was already created, please choose another name."
-		exit 1
-	fi
 
 	until [[ "$IPV4_EXISTS" == '0' ]]; do
 		read -rp "Client's WireGuard IPv4 " -e -i "${SERVER_WG_IPV4: : -1}2" CLIENT_WG_IPV4
