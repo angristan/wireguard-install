@@ -58,6 +58,7 @@ function installWireGuard() {
 	echo ""
 	echo "I need to ask you a few questions before starting the setup."
 	echo "You can leave the default options and just press enter if you are ok with them."
+	echo ""
 
 	# Detect public IPv4 or IPv6 address and pre-fill for the user
 	SERVER_PUB_IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)
@@ -198,6 +199,7 @@ function newClient() {
 		ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
 	fi
 
+	printf "\n"
 	until [[ "$CLIENT_WG_IPV4" =~ ^([0-9]{1,3}\.?){4}$ ]]; do
 		read -rp "Client's WireGuard IPv4: " -e -i "${SERVER_WG_IPV4::-1}"2 CLIENT_WG_IPV4
 	done
