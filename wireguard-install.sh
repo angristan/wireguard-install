@@ -120,7 +120,7 @@ elif [[ $OS == 'arch' ]]; then
 fi
 
 # Delete /etc/wireguard
-rm -rf /etc/wireguard > /dev/null 2>&1
+rm -rf /etc/wireguard
 
 # Delete wg.conf
 rm -f /etc/sysctl.d/wg.conf
