@@ -19,6 +19,14 @@ function addClient() {
 		read -rp "Client name: " -e CLIENT_NAME
 	done
 
+	CLIENT_EXISTS=$(grep -c -E "^### Client $CLIENT_NAME\$" "/etc/wireguard/$SERVER_WG_NIC.conf")
+
+	if [[ $CLIENT_EXISTS == '1' ]]; then
+		echo ""
+		echo "A client with the specified name was already created, please choose another name."
+		exit 1
+	fi
+
 	CLIENT_WG_IPV4="10.66.66.2"
 	read -rp "Client's WireGuard IPv4 " -e -i "$CLIENT_WG_IPV4" CLIENT_WG_IPV4
 
