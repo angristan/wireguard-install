@@ -50,7 +50,8 @@ Endpoint = $ENDPOINT
 AllowedIPs = 0.0.0.0/0,::/0" >>"$HOME/$SERVER_WG_NIC-client-$CLIENT_NAME.conf"
 
 	# Add the client as a peer to the server
-	echo -e "\n[Peer]
+	echo -e "\n### Client $CLIENT_NAME
+[Peer]
 PublicKey = $CLIENT_PUB_KEY
 PresharedKey = $CLIENT_PRE_SHARED_KEY
 AllowedIPs = $CLIENT_WG_IPV4/32,$CLIENT_WG_IPV6/128" >>"/etc/wireguard/$SERVER_WG_NIC.conf"
