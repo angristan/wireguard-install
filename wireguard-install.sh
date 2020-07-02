@@ -93,6 +93,17 @@ function installQuestions() {
 		read -rp "Server's WireGuard port [1-65535]: " -e -i "${RANDOM_PORT}" SERVER_PORT
 	done
 
+	# Adguard DNS by default
+	until [[ "${CLIENT_DNS_1}" =~ ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
+		read -rp "First DNS resolver to use for the client: " -e -i 176.103.130.130 CLIENT_DNS_1
+	done
+	until [[ "${CLIENT_DNS_2}" =~ ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
+		read -rp "Second DNS resolver to use for the client (optional): " -e -i 176.103.130.131 CLIENT_DNS_2
+		if [[ "${CLIENT_DNS_2}" == "" ]]; then
+			CLIENT_DNS_2="${CLIENT_DNS_1}"
+		fi
+	done
+
 	echo ""
 	echo "Okay, that was all I needed. We are ready to setup your WireGuard server now."
 	echo "You will be able to generate a client at the end of the installation."
@@ -149,7 +160,9 @@ SERVER_WG_IPV4=${SERVER_WG_IPV4}
 SERVER_WG_IPV6=${SERVER_WG_IPV6}
 SERVER_PORT=${SERVER_PORT}
 SERVER_PRIV_KEY=${SERVER_PRIV_KEY}
-SERVER_PUB_KEY=${SERVER_PUB_KEY}" >/etc/wireguard/params
+SERVER_PUB_KEY=${SERVER_PUB_KEY}
+CLIENT_DNS_1=${CLIENT_DNS_1}
+CLIENT_DNS_2=${CLIENT_DNS_2}" >/etc/wireguard/params
 
 	# Add server interface
 	echo "[Interface]
@@ -212,17 +225,6 @@ function newClient() {
 
 	until [[ "${CLIENT_WG_IPV6}" =~ ^([a-f0-9]{1,4}:?:?){3,5} ]]; do
 		read -rp "Client's WireGuard IPv6 : " -e -i "${SERVER_WG_IPV6::-1}"2 CLIENT_WG_IPV6
-	done
-
-	# Adguard DNS by default
-	until [[ "${CLIENT_DNS_1}" =~ ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
-		read -rp "First DNS resolver to use for the client: " -e -i 176.103.130.130 CLIENT_DNS_1
-	done
-	until [[ "${CLIENT_DNS_2}" =~ ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
-		read -rp "Second DNS resolver to use for the client (optional): " -e -i 176.103.130.131 CLIENT_DNS_2
-		if [[ "${CLIENT_DNS_2}" == "" ]]; then
-			CLIENT_DNS_2="${CLIENT_DNS_1}"
-		fi
 	done
 
 	CLIENT_NAME=$(
