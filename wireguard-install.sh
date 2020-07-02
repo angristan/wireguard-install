@@ -52,7 +52,7 @@ function initialCheck() {
 	checkOS
 }
 
-function installWireGuard() {
+function installQuestions() {
 	echo "Welcome to the WireGuard installer!"
 	echo "The git repository is available at: https://github.com/angristan/wireguard-install"
 	echo ""
@@ -92,6 +92,11 @@ function installWireGuard() {
 	until [[ $SERVER_PORT =~ ^[0-9]+$ ]] && [ "$SERVER_PORT" -ge 1 ] && [ "$SERVER_PORT" -le 65535 ]; do
 		read -rp "Server's WireGuard port [1-65535]: " -e -i "$RANDOM_PORT" SERVER_PORT
 	done
+}
+
+function installWireGuard() {
+	# Run setup questions first
+	installQuestions
 
 	# Install WireGuard tools and module
 	if [[ $OS == 'ubuntu' ]]; then
