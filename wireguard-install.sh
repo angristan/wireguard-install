@@ -18,13 +18,6 @@ function addClient() {
 	CLIENT_WG_IPV6="fd42:42:42::2"
 	read -rp "Client's WireGuard IPv6 " -e -i "$CLIENT_WG_IPV6" CLIENT_WG_IPV6
 
-	# Adguard DNS by default
-	CLIENT_DNS_1="176.103.130.130"
-	read -rp "First DNS resolver to use for the client: " -e -i "$CLIENT_DNS_1" CLIENT_DNS_1
-
-	CLIENT_DNS_2="176.103.130.131"
-	read -rp "Second DNS resolver to use for the client: " -e -i "$CLIENT_DNS_2" CLIENT_DNS_2
-
 	CLIENT_NAME=$(
 		head /dev/urandom | tr -dc A-Za-z0-9 | head -c 10
 		echo ''
@@ -131,6 +124,13 @@ read -rp "Server's WireGuard IPv6: " -e -i "$SERVER_WG_IPV6" SERVER_WG_IPV6
 SERVER_PORT=$(shuf -i49152-65535 -n1)
 read -rp "Server's WireGuard port: " -e -i "$SERVER_PORT" SERVER_PORT
 
+# Adguard DNS by default
+CLIENT_DNS_1="176.103.130.130"
+read -rp "First DNS resolver to use for clients: " -e -i "$CLIENT_DNS_1" CLIENT_DNS_1
+
+CLIENT_DNS_2="176.103.130.131"
+read -rp "Second DNS resolver to use for clients: " -e -i "$CLIENT_DNS_2" CLIENT_DNS_2
+
 # Install WireGuard tools and module
 if [[ $OS == 'ubuntu' ]]; then
 	apt-get install -y software-properties-common
@@ -177,7 +177,9 @@ SERVER_WG_IPV4=$SERVER_WG_IPV4
 SERVER_WG_IPV6=$SERVER_WG_IPV6
 SERVER_PORT=$SERVER_PORT
 SERVER_PRIV_KEY=$SERVER_PRIV_KEY
-SERVER_PUB_KEY=$SERVER_PUB_KEY" >/etc/wireguard/params
+SERVER_PUB_KEY=$SERVER_PUB_KEY
+CLIENT_DNS_1=$CLIENT_DNS_1
+CLIENT_DNS_2=$CLIENT_DNS_2" >/etc/wireguard/params
 
 source /etc/wireguard/params
 
