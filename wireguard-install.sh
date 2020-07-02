@@ -178,10 +178,8 @@ function newClient() {
 	source /etc/wireguard/params
 
 	if [[ $SERVER_PUB_IP =~ .*:.* ]]; then
-		echo "IPv6 Detected"
 		ENDPOINT="[$SERVER_PUB_IP]:$SERVER_PORT"
 	else
-		echo "IPv4 Detected"
 		ENDPOINT="$SERVER_PUB_IP:$SERVER_PORT"
 	fi
 
