@@ -137,7 +137,7 @@ function installWireGuard() {
 		dnf install -y wireguard-tools iptables qrencode
 	elif [[ "${OS}" == 'centos' ]]; then
 		curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
-		yum -y install epel-release
+		yum -y install epel-release kernel kernel-devel kernel-headers
 		yum -y install wireguard-dkms wireguard-tools iptables qrencode
 	elif [[ "${OS}" == 'arch' ]]; then
 		pacman -S --noconfirm linux-headers
@@ -197,7 +197,7 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 	# Warn user about kernel version mismatch with headers
 	if [[ "${OS}" =~ (fedora|centos) ]] && [[ "${WG_RUNNING}" -ne 0 ]]; then
 		echo -e "\nWARNING: WireGuard does not seem to be running."
-		echo "Due to kernel mismatch issues on ${OS}, WireGuard might work if your system is out of date."
+		echo "Due to kernel mismatch issues on ${OS}, WireGuard might not work if your system is out of date."
 		echo "You can check if WireGuard is running with: systemctl status wg-quick@${SERVER_WG_NIC}"
 		echo 'If you get something like "Cannot find device wg0", please run:'
 		if [[ "${OS}" == 'fedora' ]]; then
