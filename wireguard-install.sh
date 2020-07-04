@@ -104,6 +104,8 @@ if [[ $OS == 'ubuntu' ]]; then
 	apt-get autoremove -y
 elif [[ $OS == 'debian' ]]; then
 	apt-get remove --purge -y wireguard qrencode
+    rm -f "/etc/apt/sources.list.d/unstable.list"
+	rm -f "/etc/apt/preferences.d/limit-unstable"
 	apt-get autoremove -y
 elif [[ $OS == 'fedora' ]]; then
     dnf remove -y wireguard-tools qrencode
@@ -114,9 +116,10 @@ elif [[ $OS == 'fedora' ]]; then
 	dnf autoremove -y
 elif [[ $OS == 'centos' ]]; then
 	yum -y remove wireguard-dkms wireguard-tools qrencode
+    rm -f "/etc/yum.repos.d/wireguard.repo"
 	yum -y autoremove
 elif [[ $OS == 'arch' ]]; then
-	pacman -Rs --noconfirm wireguard-tools wireguard-arch qrencode
+	pacman -Rs --noconfirm wireguard-tools qrencode
 fi
 
 # Delete /etc/wireguard
