@@ -237,6 +237,15 @@ function newClient() {
 	CLIENT_PUB_KEY=$(echo "${CLIENT_PRIV_KEY}" | wg pubkey)
 	CLIENT_PRE_SHARED_KEY=$(wg genpsk)
 
+	# Home directory of the user, where the client configuration will be written
+	if [ -e "/home/$CLIENT" ]; then # if $1 is a user name
+		HOME_DIR="/home/$CLIENT"
+	elif [ "${SUDO_USER}" ]; then # if not, use SUDO_USER
+		HOME_DIR="/home/${SUDO_USER}"
+	else # if not SUDO_USER, use /root
+		HOME_DIR="/root"
+	fi
+
 	# Create client file and add the server as a peer
 	echo "[Interface]
 PrivateKey = ${CLIENT_PRIV_KEY}
@@ -247,7 +256,7 @@ DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
 PublicKey = ${SERVER_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
 Endpoint = ${ENDPOINT}
-AllowedIPs = 0.0.0.0/0,::/0" >>"${HOME}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+AllowedIPs = 0.0.0.0/0,::/0" >>"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 
 	# Add the client as a peer to the server
 	echo -e "\n[Peer]
@@ -259,9 +268,9 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 
 	echo -e "\nHere is your client config file as a QR Code:"
 
-	qrencode -t ansiutf8 -l L <"${HOME}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+	qrencode -t ansiutf8 -l L <"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 
-	echo "It is also available in ${HOME}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+	echo "It is also available in ${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 }
 
 function manageMenu() {
