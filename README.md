@@ -21,9 +21,9 @@ Supported distributions:
 
 I recommend these cheap cloud providers for your VPN server:
 
-- [Vultr](https://goo.gl/Xyd1Sc): Worldwide locations, IPv6 support, starting at $3.50/month
+- [Vultr](https://goo.gl/Xyd1Sc): Worldwide locations, IPv6 support, starting at \$3.50/month
 - [PulseHeberg](https://goo.gl/76yqW5): France, unlimited bandwidth, starting at €3/month
-- [Digital Ocean](https://goo.gl/qXrNLK): Worldwide locations, IPv6 support, starting at $5/month
+- [Digital Ocean](https://goo.gl/qXrNLK): Worldwide locations, IPv6 support, starting at \$5/month
 
 ## Usage
 
@@ -46,3 +46,16 @@ To generate more client files, run the following:
 Make sure you choose different IPs for you clients.
 
 Contributions are welcome!
+
+## Contributors hall-of-fame
+
+Thanks ❤️
+
+[![](https://sourcerer.io/fame/angristan/angristan/wireguard-install/images/0)](https://github.com/angristan/wireguard-install/graphs/contributors)
+[![](https://sourcerer.io/fame/angristan/angristan/wireguard-install/images/1)](https://github.com/angristan/wireguard-install/graphs/contributors)
+[![](https://sourcerer.io/fame/angristan/angristan/wireguard-install/images/2)](https://github.com/angristan/wireguard-install/graphs/contributors)
+[![](https://sourcerer.io/fame/angristan/angristan/wireguard-install/images/3)](https://github.com/angristan/wireguard-install/graphs/contributors)
+[![](https://sourcerer.io/fame/angristan/angristan/wireguard-install/images/4)](https://github.com/angristan/wireguard-install/graphs/contributors)
+[![](https://sourcerer.io/fame/angristan/angristan/wireguard-install/images/5)](https://github.com/angristan/wireguard-install/graphs/contributors)
+[![](https://sourcerer.io/fame/angristan/angristan/wireguard-install/images/6)](https://github.com/angristan/wireguard-install/graphs/contributors)
+[![](https://sourcerer.io/fame/angristan/angristan/wireguard-install/images/7)](https://github.com/angristan/wireguard-install/graphs/contributors)
