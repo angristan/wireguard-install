@@ -22,7 +22,7 @@ Supported distributions:
 I recommend these cheap cloud providers for your VPN server:
 
 - [Vultr](https://goo.gl/Xyd1Sc): Worldwide locations, IPv6 support, starting at \$3.50/month
-- [PulseHeberg](https://goo.gl/76yqW5): France, unlimited bandwidth, starting at €3/month
+- [PulseHeberg](https://goo.gl/76yqW5): France, unlimited bandwidth, starting at €4/month
 - [Digital Ocean](https://goo.gl/qXrNLK): Worldwide locations, IPv6 support, starting at \$5/month
 
 ## Usage
