@@ -13,10 +13,10 @@ function addClient() {
 	fi
 
 	CLIENT_WG_IPV4="10.66.66.2"
-	read -rp "Client's WireGuard IPv4 " -e -i "$CLIENT_WG_IPV4" CLIENT_WG_IPV4
+	read -rp "Client's WireGuard IPv4: " -e -i "$CLIENT_WG_IPV4" CLIENT_WG_IPV4
 
 	CLIENT_WG_IPV6="fd42:42:42::2"
-	read -rp "Client's WireGuard IPv6 " -e -i "$CLIENT_WG_IPV6" CLIENT_WG_IPV6
+	read -rp "Client's WireGuard IPv6: " -e -i "$CLIENT_WG_IPV6" CLIENT_WG_IPV6
 
 	# Adguard DNS by default
 	CLIENT_DNS_1="176.103.130.130"
