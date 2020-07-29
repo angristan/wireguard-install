@@ -32,6 +32,14 @@ function checkOS() {
 		# shellcheck disable=SC1091
 		source /etc/os-release
 		OS="${ID}" # debian or ubuntu
+		if [[ -e /etc/debian_version ]]; then
+			if [[ $ID == "debian" || $ID == "raspbian" ]]; then
+				if [[ $VERSION_ID -ne 10 ]]; then
+					echo "Your version of Debian ($VERSION_ID) is not supported. Please use Debian 10 Buster"
+					exit 1
+				fi
+			fi
+		fi
 	elif [[ -e /etc/fedora-release ]]; then
 		# shellcheck disable=SC1091
 		source /etc/os-release
@@ -122,12 +130,13 @@ function installWireGuard() {
 		apt-get install -y "linux-headers-$(uname -r)"
 		apt-get install -y wireguard iptables resolvconf qrencode
 	elif [[ "${OS}" == 'debian' ]]; then
-		echo "deb http://deb.debian.org/debian/ unstable main" >/etc/apt/sources.list.d/unstable.list
-		printf 'Package: *\nPin: release a=unstable\nPin-Priority: 90\n' >/etc/apt/preferences.d/limit-unstable
+		if ! grep -rqs "^deb .* buster-backports" /etc/apt/; then
+			echo "deb http://deb.debian.org/debian buster-backports main" >/etc/apt/sources.list.d/backports.list
+			apt-get update
+		fi
 		apt update
-		apt-get install -y "linux-headers-$(uname -r)"
-		apt-get install -y wireguard iptables resolvconf qrencode
-		apt-get install -y bc # mitigate https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=956869
+		apt-get install -y iptables resolvconf qrencode
+		apt-get install -y -t buster-backports wireguard
 	elif [[ "${OS}" == 'fedora' ]]; then
 		if [[ "${VERSION_ID}" -lt 32 ]]; then
 			dnf install -y dnf-plugins-core
