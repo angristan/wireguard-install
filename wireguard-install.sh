@@ -289,14 +289,10 @@ function uninstallWg() {
 	systemctl disable "wg-quick@$SERVER_WG_NIC"
 
 	if [[ $OS == 'ubuntu' ]]; then
-		apt-get remove --purge -y wireguard qrencode
+		apt-get autoremove --purge -y wireguard qrencode
 		add-apt-repository -y -r ppa:wireguard/wireguard
-		apt-get autoremove -y
 	elif [[ $OS == 'debian' ]]; then
-		apt-get remove --purge -y wireguard qrencode
-		rm -f "/etc/apt/sources.list.d/unstable.list"
-		rm -f "/etc/apt/preferences.d/limit-unstable"
-		apt-get autoremove -y
+		apt-get autoremove --purge -y wireguard qrencode
 	elif [[ $OS == 'fedora' ]]; then
 		dnf remove -y wireguard-tools qrencode
 		if [[ $VERSION_ID -lt 32 ]]; then
