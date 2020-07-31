@@ -276,6 +276,57 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 	echo "It is also available in ${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 }
 
+function uninstallWg() {
+	if [[ ! -e /etc/wireguard/params ]]; then
+		echo "WireGuard is not installed."
+		exit 1
+	fi
+
+	checkOS
+	source /etc/wireguard/params
+
+	systemctl stop "wg-quick@$SERVER_WG_NIC"
+	systemctl disable "wg-quick@$SERVER_WG_NIC"
+
+	if [[ $OS == 'ubuntu' ]]; then
+		apt-get autoremove --purge -y wireguard qrencode
+		add-apt-repository -y -r ppa:wireguard/wireguard
+	elif [[ $OS == 'debian' ]]; then
+		apt-get autoremove --purge -y wireguard qrencode
+	elif [[ $OS == 'fedora' ]]; then
+		dnf remove -y wireguard-tools qrencode
+		if [[ $VERSION_ID -lt 32 ]]; then
+			dnf remove -y wireguard-dkms
+			dnf copr disable -y jdoss/wireguard
+		fi
+		dnf autoremove -y
+	elif [[ $OS == 'centos' ]]; then
+		yum -y remove wireguard-dkms wireguard-tools qrencode
+		rm -f "/etc/yum.repos.d/wireguard.repo"
+		yum -y autoremove
+	elif [[ $OS == 'arch' ]]; then
+		pacman -Rs --noconfirm wireguard-tools qrencode
+	fi
+
+	rm -rf /etc/wireguard
+	rm -f /etc/sysctl.d/wg.conf
+
+	# Reload sysctl
+	sysctl --system
+
+	# Check if WireGuard is running
+	systemctl is-active --quiet "wg-quick@$SERVER_WG_NIC"
+	WG_RUNNING=$?
+
+	if [[ $WG_RUNNING -eq 0 ]]; then
+		echo "WireGuard failed to uninstall properly."
+		exit 1
+	else
+		echo "WireGuard uninstalled successfully."
+		exit 0
+	fi
+}
+
 function manageMenu() {
 	echo "Welcome to WireGuard-install!"
 	echo "The git repository is available at: https://github.com/angristan/wireguard-install"
@@ -284,15 +335,19 @@ function manageMenu() {
 	echo ""
 	echo "What do you want to do?"
 	echo "   1) Add a new user"
-	echo "   2) Exit"
-	until [[ ${MENU_OPTION} =~ ^[1-2]$ ]]; do
-		read -rp "Select an option [1-2]: " MENU_OPTION
+	echo "   2) Uninstall WireGuard"
+	echo "   3) Exit"
+	until [[ ${MENU_OPTION} =~ ^[1-3]$ ]]; do
+		read -rp "Select an option [1-3]: " MENU_OPTION
 	done
 	case "${MENU_OPTION}" in
 	1)
 		newClient
 		;;
 	2)
+		uninstallWg
+		;;
+	3)
 		exit 0
 		;;
 	esac
