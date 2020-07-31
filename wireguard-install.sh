@@ -203,17 +203,11 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 	systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
 	WG_RUNNING=$?
 
-	# Warn user about kernel version mismatch with headers
-	if [[ "${OS}" =~ (fedora|centos) ]] && [[ "${WG_RUNNING}" -ne 0 ]]; then
+	# WireGuard might not work if we updated the kernel. Tell the user to reboot
+	if [[ "${WG_RUNNING}" -ne 0 ]]; then
 		echo -e "\nWARNING: WireGuard does not seem to be running."
-		echo "Due to kernel mismatch issues on ${OS}, WireGuard might not work if your system is out of date."
 		echo "You can check if WireGuard is running with: systemctl status wg-quick@${SERVER_WG_NIC}"
-		echo 'If you get something like "Cannot find device wg0", please run:'
-		if [[ "${OS}" == 'fedora' ]]; then
-			echo "dnf update -y && reboot"
-		elif [[ "${OS}" == 'centos' ]]; then
-			echo "yum update -y && reboot"
-		fi
+		echo 'If you get something like "Cannot find device wg0", please reboot!'
 	fi
 
 	newClient
