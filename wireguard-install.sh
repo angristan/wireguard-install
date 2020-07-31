@@ -215,10 +215,6 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 }
 
 function newClient() {
-	# Load params
-	# shellcheck disable=SC1091
-	source /etc/wireguard/params
-
 	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
 
 	echo ""
@@ -310,9 +306,6 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 }
 
 function revokeClient() {
-	# Load params
-	source /etc/wireguard/params
-
 	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 	if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
 		echo ""
@@ -345,13 +338,7 @@ function revokeClient() {
 }
 
 function uninstallWg() {
-	if [[ ! -e /etc/wireguard/params ]]; then
-		echo "WireGuard is not installed."
-		exit 1
-	fi
-
 	checkOS
-	source /etc/wireguard/params
 
 	systemctl stop "wg-quick@${SERVER_WG_NIC}"
 	systemctl disable "wg-quick@${SERVER_WG_NIC}"
@@ -428,8 +415,10 @@ function manageMenu() {
 # Check for root, virt, OS...
 initialCheck
 
-# Check if WireGuard is already installed
+# Check if WireGuard is already installed and load params
 if [[ -e /etc/wireguard/params ]]; then
+	# shellcheck disable=SC1091
+	source /etc/wireguard/params
 	manageMenu
 else
 	installWireGuard
