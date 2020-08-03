@@ -29,7 +29,6 @@ function checkVirt() {
 function checkOS() {
 	# Check OS version
 	if [[ -e /etc/debian_version ]]; then
-		# shellcheck disable=SC1091
 		source /etc/os-release
 		OS="${ID}" # debian or ubuntu
 		if [[ -e /etc/debian_version ]]; then
@@ -41,7 +40,6 @@ function checkOS() {
 			fi
 		fi
 	elif [[ -e /etc/fedora-release ]]; then
-		# shellcheck disable=SC1091
 		source /etc/os-release
 		OS="${ID}"
 	elif [[ -e /etc/centos-release ]]; then
@@ -83,7 +81,6 @@ function installQuestions() {
 	done
 
 	until [[ ${SERVER_WG_NIC} =~ ^[a-zA-Z0-9_]+$ ]]; do
-		# shellcheck disable=SC2034
 		read -rp "WireGuard interface name: " -e -i wg0 SERVER_WG_NIC
 	done
 
@@ -178,7 +175,6 @@ PrivateKey = ${SERVER_PRIV_KEY}" >"/etc/wireguard/${SERVER_WG_NIC}.conf"
 
 	if pgrep firewalld; then
 		FIREWALLD_IPV4_ADDRESS=$(echo "${SERVER_WG_IPV4}" | cut -d"." -f1-3)".0"
-		# shellcheck disable=SC2001
 		FIREWALLD_IPV6_ADDRESS=$(echo "${SERVER_WG_IPV6}" | sed 's/:[^:]*$/:0/')
 		echo "PostUp = firewall-cmd --add-port ${SERVER_PORT}/udp && firewall-cmd --add-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && firewall-cmd --add-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/24 masquerade'
 PostDown = firewall-cmd --remove-port ${SERVER_PORT}/udp && firewall-cmd --remove-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && firewall-cmd --remove-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/24 masquerade'" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
@@ -420,7 +416,6 @@ initialCheck
 
 # Check if WireGuard is already installed and load params
 if [[ -e /etc/wireguard/params ]]; then
-	# shellcheck disable=SC1091
 	source /etc/wireguard/params
 	manageMenu
 else
