@@ -13,17 +13,11 @@ WireGuard does not fit your environment? Check out [openvpn-install](https://git
 
 Supported distributions:
 
-- Ubuntu
-- Debian
+- Ubuntu 16.04+
+- Debian 10
 - Fedora
 - CentOS
 - Arch Linux
-
-I recommend these cheap cloud providers for your VPN server:
-
-- [Vultr](https://goo.gl/Xyd1Sc): Worldwide locations, IPv6 support, starting at $3.50/month
-- [PulseHeberg](https://goo.gl/76yqW5): France, unlimited bandwidth, starting at €3/month
-- [Digital Ocean](https://goo.gl/qXrNLK): Worldwide locations, IPv6 support, starting at $5/month
 
 ## Usage
 
@@ -37,6 +31,13 @@ chmod +x wireguard-install.sh
 
 It will install WireGuard (kernel module and tools) on the server, configure it, create a systemd service and a client configuration file.
 
-Make sure you choose different IPs for you clients.
+Run the script again to add or remove clients!
 
-Contributions are welcome!
+## Providers
+
+I recommend these cheap cloud providers for your VPN server:
+
+- [Vultr](https://goo.gl/Xyd1Sc): Worldwide locations, IPv6 support, starting at \$3.50/month
+- [Hetzner](https://hetzner.cloud/?ref=ywtlvZsjgeDq): Germany, IPv6, 20 TB of traffic, starting at €3/month
+- [Digital Ocean](https://goo.gl/qXrNLK): Worldwide locations, IPv6 support, starting at \$5/month
+- [PulseHeberg](https://goo.gl/76yqW5): France, unlimited bandwidth, starting at €3/month
