@@ -124,10 +124,7 @@ function installWireGuard() {
 
 	# Install WireGuard tools and module
 	if [[ ${OS} == 'ubuntu' ]]; then
-		apt-get install -y software-properties-common
-		add-apt-repository -y ppa:wireguard/wireguard
 		apt-get update
-		apt-get install -y "linux-headers-$(uname -r)"
 		apt-get install -y wireguard iptables resolvconf qrencode
 	elif [[ ${OS} == 'debian' ]]; then
 		if ! grep -rqs "^deb .* buster-backports" /etc/apt/; then
