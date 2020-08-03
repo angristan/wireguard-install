@@ -221,7 +221,7 @@ function newClient() {
 	echo "Tell me a name for the client."
 	echo "Use one word only, no special characters."
 
-	until [[ "${CLIENT_NAME}" =~ ^[a-zA-Z0-9_]+$ && "${CLIENT_EXISTS}" == '0' ]]; do
+	until [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_]+$ && ${CLIENT_EXISTS} == '0' ]]; do
 		read -rp "Client name: " -e CLIENT_NAME
 		CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
@@ -245,7 +245,7 @@ function newClient() {
 		exit 1
 	fi
 
-	until [[ "${IPV4_EXISTS}" == '0' ]]; do
+	until [[ ${IPV4_EXISTS} == '0' ]]; do
 		read -rp "Client's WireGuard IPv4: ${SERVER_WG_IPV4::-1}" -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV4="${SERVER_WG_IPV4::-1}${DOT_IP}"
 		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4" "/etc/wireguard/${SERVER_WG_NIC}.conf")
@@ -257,7 +257,7 @@ function newClient() {
 		fi
 	done
 
-	until [[ "${IPV6_EXISTS}" == '0' ]]; do
+	until [[ ${IPV6_EXISTS} == '0' ]]; do
 		read -rp "Client's WireGuard IPv6: ${SERVER_WG_IPV6::-1}" -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV6="${SERVER_WG_IPV6::-1}${DOT_IP}"
 		IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}" "/etc/wireguard/${SERVER_WG_NIC}.conf")
