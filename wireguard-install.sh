@@ -33,9 +33,9 @@ function checkOS() {
 		source /etc/os-release
 		OS="${ID}" # debian or ubuntu
 		if [[ -e /etc/debian_version ]]; then
-			if [[ $ID == "debian" || $ID == "raspbian" ]]; then
-				if [[ $VERSION_ID -ne 10 ]]; then
-					echo "Your version of Debian ($VERSION_ID) is not supported. Please use Debian 10 Buster"
+			if [[ ${ID} == "debian" || ${ID} == "raspbian" ]]; then
+				if [[ ${VERSION_ID} -ne 10 ]]; then
+					echo "Your version of Debian (${VERSION_ID}) is not supported. Please use Debian 10 Buster"
 					exit 1
 				fi
 			fi
@@ -215,25 +215,59 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 }
 
 function newClient() {
-	# Load params
-	# shellcheck disable=SC1091
-	source /etc/wireguard/params
-
 	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
 
-	printf "\n"
-	until [[ ${CLIENT_WG_IPV4} =~ ^([0-9]{1,3}\.?){4}$ ]]; do
-		read -rp "Client's WireGuard IPv4: " -e -i "${SERVER_WG_IPV4::-1}"2 CLIENT_WG_IPV4
+	echo ""
+	echo "Tell me a name for the client."
+	echo "Use one word only, no special characters."
+
+	until [[ "${CLIENT_NAME}" =~ ^[a-zA-Z0-9_]+$ && "${CLIENT_EXISTS}" == '0' ]]; do
+		read -rp "Client name: " -e CLIENT_NAME
+		CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+
+		if [[ ${CLIENT_EXISTS} == '1' ]]; then
+			echo ""
+			echo "A client with the specified name was already created, please choose another name."
+			echo ""
+		fi
 	done
 
-	until [[ ${CLIENT_WG_IPV6} =~ ^([a-f0-9]{1,4}:?:?){3,5} ]]; do
-		read -rp "Client's WireGuard IPv6 : " -e -i "${SERVER_WG_IPV6::-1}"2 CLIENT_WG_IPV6
+	for DOT_IP in {2..254}; do
+		DOT_EXISTS=$(grep -c "${SERVER_WG_IPV4::-1}${DOT_IP}" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+		if [[ ${DOT_EXISTS} == '0' ]]; then
+			break
+		fi
 	done
 
-	CLIENT_NAME=$(
-		head /dev/urandom | tr -dc A-Za-z0-9 | head -c 10
-		echo ''
-	)
+	if [[ ${DOT_EXISTS} == '1' ]]; then
+		echo ""
+		echo "The subnet configured supports only 253 clients."
+		exit 1
+	fi
+
+	until [[ "${IPV4_EXISTS}" == '0' ]]; do
+		read -rp "Client's WireGuard IPv4: ${SERVER_WG_IPV4::-1}" -e -i "${DOT_IP}" DOT_IP
+		CLIENT_WG_IPV4="${SERVER_WG_IPV4::-1}${DOT_IP}"
+		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+
+		if [[ ${IPV4_EXISTS} == '1' ]]; then
+			echo ""
+			echo "A client with the specified IPv4 was already created, please choose another IPv4."
+			echo ""
+		fi
+	done
+
+	until [[ "${IPV6_EXISTS}" == '0' ]]; do
+		read -rp "Client's WireGuard IPv6: ${SERVER_WG_IPV6::-1}" -e -i "${DOT_IP}" DOT_IP
+		CLIENT_WG_IPV6="${SERVER_WG_IPV6::-1}${DOT_IP}"
+		IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+
+		if [[ ${IPV6_EXISTS} == '1' ]]; then
+			echo ""
+			echo "A client with the specified IPv6 was already created, please choose another IPv6."
+			echo ""
+		fi
+	done
 
 	# Generate key pair for the client
 	CLIENT_PRIV_KEY=$(wg genkey)
@@ -262,7 +296,8 @@ Endpoint = ${ENDPOINT}
 AllowedIPs = 0.0.0.0/0,::/0" >>"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 
 	# Add the client as a peer to the server
-	echo -e "\n[Peer]
+	echo -e "\n### Client ${CLIENT_NAME}
+[Peer]
 PublicKey = ${CLIENT_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
 AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
@@ -276,35 +311,61 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 	echo "It is also available in ${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 }
 
-function uninstallWg() {
-	if [[ ! -e /etc/wireguard/params ]]; then
-		echo "WireGuard is not installed."
+function revokeClient() {
+	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+	if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
+		echo ""
+		echo "You have no existing clients!"
 		exit 1
 	fi
 
+	echo ""
+	echo "Select the existing client you want to revoke"
+	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
+	until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
+		if [[ ${CLIENT_NUMBER} == '1' ]]; then
+			read -rp "Select one client [1]: " CLIENT_NUMBER
+		else
+			read -rp "Select one client [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+		fi
+	done
+
+	# match the selected number to a client name
+	CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
+
+	# remove [Peer] block matching $CLIENT_NAME
+	sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/d" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+
+	# remove generated client file
+	rm -f "${HOME}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+
+	# restart wireguard to apply changes
+	systemctl restart "wg-quick@${SERVER_WG_NIC}"
+}
+
+function uninstallWg() {
 	checkOS
-	source /etc/wireguard/params
 
-	systemctl stop "wg-quick@$SERVER_WG_NIC"
-	systemctl disable "wg-quick@$SERVER_WG_NIC"
+	systemctl stop "wg-quick@${SERVER_WG_NIC}"
+	systemctl disable "wg-quick@${SERVER_WG_NIC}"
 
-	if [[ $OS == 'ubuntu' ]]; then
+	if [[ ${OS} == 'ubuntu' ]]; then
 		apt-get autoremove --purge -y wireguard qrencode
 		add-apt-repository -y -r ppa:wireguard/wireguard
-	elif [[ $OS == 'debian' ]]; then
+	elif [[ ${OS} == 'debian' ]]; then
 		apt-get autoremove --purge -y wireguard qrencode
-	elif [[ $OS == 'fedora' ]]; then
+	elif [[ ${OS} == 'fedora' ]]; then
 		dnf remove -y wireguard-tools qrencode
-		if [[ $VERSION_ID -lt 32 ]]; then
+		if [[ ${VERSION_ID} -lt 32 ]]; then
 			dnf remove -y wireguard-dkms
 			dnf copr disable -y jdoss/wireguard
 		fi
 		dnf autoremove -y
-	elif [[ $OS == 'centos' ]]; then
+	elif [[ ${OS} == 'centos' ]]; then
 		yum -y remove wireguard-dkms wireguard-tools qrencode
 		rm -f "/etc/yum.repos.d/wireguard.repo"
 		yum -y autoremove
-	elif [[ $OS == 'arch' ]]; then
+	elif [[ ${OS} == 'arch' ]]; then
 		pacman -Rs --noconfirm wireguard-tools qrencode
 	fi
 
@@ -315,10 +376,10 @@ function uninstallWg() {
 	sysctl --system
 
 	# Check if WireGuard is running
-	systemctl is-active --quiet "wg-quick@$SERVER_WG_NIC"
+	systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
 	WG_RUNNING=$?
 
-	if [[ $WG_RUNNING -eq 0 ]]; then
+	if [[ ${WG_RUNNING} -eq 0 ]]; then
 		echo "WireGuard failed to uninstall properly."
 		exit 1
 	else
@@ -335,19 +396,23 @@ function manageMenu() {
 	echo ""
 	echo "What do you want to do?"
 	echo "   1) Add a new user"
-	echo "   2) Uninstall WireGuard"
-	echo "   3) Exit"
-	until [[ ${MENU_OPTION} =~ ^[1-3]$ ]]; do
-		read -rp "Select an option [1-3]: " MENU_OPTION
+	echo "   2) Revoke existing user"
+	echo "   3) Uninstall WireGuard"
+	echo "   4) Exit"
+	until [[ ${MENU_OPTION} =~ ^[1-4]$ ]]; do
+		read -rp "Select an option [1-4]: " MENU_OPTION
 	done
 	case "${MENU_OPTION}" in
 	1)
 		newClient
 		;;
 	2)
-		uninstallWg
+		revokeClient
 		;;
 	3)
+		uninstallWg
+		;;
+	4)
 		exit 0
 		;;
 	esac
@@ -356,8 +421,10 @@ function manageMenu() {
 # Check for root, virt, OS...
 initialCheck
 
-# Check if WireGuard is already installed
+# Check if WireGuard is already installed and load params
 if [[ -e /etc/wireguard/params ]]; then
+	# shellcheck disable=SC1091
+	source /etc/wireguard/params
 	manageMenu
 else
 	installWireGuard
