@@ -200,7 +200,7 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 	if [[ ${WG_RUNNING} -ne 0 ]]; then
 		echo -e "\nWARNING: WireGuard does not seem to be running."
 		echo "You can check if WireGuard is running with: systemctl status wg-quick@${SERVER_WG_NIC}"
-		echo 'If you get something like "Cannot find device wg0", please reboot!'
+		echo "If you get something like \"Cannot find device ${SERVER_WG_NIC}\", please reboot!"
 	fi
 
 	newClient
