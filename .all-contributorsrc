@@ -1,0 +1,146 @@
+{
+  "projectName": "wireguard-install",
+  "projectOwner": "angristan",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitConvention": "none",
+  "contributorsSortAlphabetically": true,
+  "contributorsPerLine": 7,
+  "contributors": [
+    {
+      "login": "angristan",
+      "name": "Stanislas",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/11699655?v=4",
+      "contributions": [
+        "question",
+        "bug",
+        "code",
+        "infra",
+        "maintenance",
+        "projectManagement",
+        "review"
+      ]
+    },
+    {
+      "login": "randomshell",
+      "name": "randomshell",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/43271778?v=4",
+      "contributions": [
+        "question",
+        "bug",
+        "code",
+        "review"
+      ]
+    },
+    {
+      "login": "lucawen",
+      "name": "Luca Lacerda",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/1365208?v=4",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "robiiinos",
+      "name": "D. Robin",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/16455953?v=4",
+      "contributions": [
+        "infra"
+      ]
+    },
+    {
+      "login": "shyamjos",
+      "name": "Shyam Jos",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/3982702?v=4",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "outis151",
+      "name": "outis151",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/11805613?v=4",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "navilg",
+      "name": "Navratan Gupta",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/37469234?v=4",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "m0nhawk",
+      "name": "Andrew Prokhorenkov",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/8220926?v=4",
+      "contributions": [
+        "code",
+        "bug"
+      ]
+    },
+    {
+      "login": "FollowMeDown",
+      "name": "Deface",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/32715156?v=4",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "jellemdekker",
+      "name": "Jelle Dekker",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/5638782?v=4",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Shagon94",
+      "name": "Shagon94",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/9140783?v=4",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Leopere",
+      "name": "Leopere",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/1068374?v=4",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "rummyr",
+      "name": "rummyr",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/20533485?v=4",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "HaimenToshi",
+      "name": "HaimenToshi ",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/39633719?v=4",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "TheNomad11",
+      "name": "TheNomad11",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/20747629?v=4",
+      "contributions": [
+        "bug"
+      ]
+    }
+  ]
+}
