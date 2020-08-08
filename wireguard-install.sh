@@ -35,6 +35,7 @@ function checkOS() {
 			if [[ ${ID} == "debian" || ${ID} == "raspbian" ]]; then
 				if [[ ${VERSION_ID} -ne 10 ]]; then
 					echo "Your version of Debian (${VERSION_ID}) is not supported. Please use Debian 10 Buster"
+					echo "Or try https://github.com/pivpn/pivpn"
 					exit 1
 				fi
 			fi
