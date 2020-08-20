@@ -140,8 +140,8 @@ function installWireGuard() {
 		dnf install -y wireguard-tools iptables qrencode
 	elif [[ ${OS} == 'centos' ]]; then
 		curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
-		yum -y install epel-release kernel kernel-devel kernel-headers
-		yum -y install wireguard-dkms wireguard-tools iptables qrencode
+		yum -y install epel-release kernel kernel-devel kernel-headers elrepo-release
+		yum -y install wireguard-dkms wireguard-tools iptables qrencode kmod-wireguard
 	elif [[ ${OS} == 'arch' ]]; then
 		pacman -S --noconfirm linux-headers
 		pacman -S --noconfirm wireguard-tools iptables qrencode
@@ -354,7 +354,7 @@ function uninstallWg() {
 		fi
 		dnf autoremove -y
 	elif [[ ${OS} == 'centos' ]]; then
-		yum -y remove wireguard-dkms wireguard-tools qrencode
+		yum -y remove wireguard-dkms wireguard-tools qrencode kmod-wireguard
 		rm -f "/etc/yum.repos.d/wireguard.repo"
 		yum -y autoremove
 	elif [[ ${OS} == 'arch' ]]; then
