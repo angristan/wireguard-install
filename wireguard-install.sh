@@ -67,7 +67,7 @@ function installQuestions() {
 	echo ""
 
 	# Detect public IPv4 or IPv6 address and pre-fill for the user
-	SERVER_PUB_IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)
+	SERVER_PUB_IP=${SERVER_PUB_IP:-$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)}
 	if [[ -z ${SERVER_PUB_IP} ]]; then
 		# Detect public IPv6 address
 		SERVER_PUB_IP=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | head -1)
@@ -79,7 +79,7 @@ function installQuestions() {
 	fi
 
 	# Detect public interface and pre-fill for the user
-	SERVER_NIC="$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)"
+	SERVER_NIC=${SERVER_NIC:-$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)}
 	APPROVE_NIC=${APPROVE_NIC:-n}
 	until [[ ${SERVER_PUB_NIC} =~ ^[a-zA-Z0-9_]+$ || ${APPROVE_NIC} =~ n ]]; do
 		read -rp "Public interface: " -e -i "${SERVER_NIC}" SERVER_PUB_NIC
