@@ -252,6 +252,7 @@ function newClient() {
 			echo ""
 			echo "A client with the specified name was already created, please choose another name."
 			echo ""
+			exit 1
 		fi
 	done
 
