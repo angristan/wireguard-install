@@ -80,6 +80,9 @@ function installQuestions() {
 
 	# Detect public interface and pre-fill for the user
 	SERVER_NIC=${SERVER_NIC:-$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)}
+	if [[ -z $SERVER_NIC ]]; then
+		SERVER_NIC=$(ip -6 route show default | sed -ne 's/^default .* dev \([^ ]*\) .*$/\1/p')
+	fi
 	APPROVE_NIC=${APPROVE_NIC:-n}
 	until [[ ${SERVER_PUB_NIC} =~ ^[a-zA-Z0-9_]+$ || ${APPROVE_NIC} =~ n ]]; do
 		read -rp "Public interface: " -e -i "${SERVER_NIC}" SERVER_PUB_NIC
