@@ -285,7 +285,7 @@ function newClient() {
 
 	until [[ ${IPV6_EXISTS} == '0' ]]; do
 		until [[ ${CLIENT_DOT_IPV6} =~ ^[a-f0-9]{1,4}$ ]]; do
-			read -rp "Client's WireGuard IPv6: ${SERVER_WG_IPV6::-1}" -e -i "${CLIENT_DOT_IPV6}" CLIENT_DOT_IPV6
+			read -rp "Client's WireGuard IPv6: ${SERVER_WG_IPV6::-1}" -e -i "${CLIENT_DOT_IPV4}" CLIENT_DOT_IPV6
 		done
 		CLIENT_WG_IPV6="${SERVER_WG_IPV6::-1}${CLIENT_DOT_IPV6}"
 		IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}" "/etc/wireguard/${SERVER_WG_NIC}.conf")
