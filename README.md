@@ -82,6 +82,19 @@ export CLIENT_DOT="3"
 ./wireguard-install.sh
 ```
 
+## Headless User Revokation
+
+It's also possible to automate the revokation of an existing user. Here, the key is to provide the (string) value of the `MENU_OPTION` variable along with the remaining mandatory variables before invoking the script.
+
+The following Bash script revokes an user `foo` from an existing WireGuard configuration
+
+```bash
+#!/bin/bash
+export MENU_OPTION="2"
+export CLIENT_NAME="foo"
+./wireguard-install.sh
+```
+
 ## Providers
 
 I recommend these cheap cloud providers for your VPN server:

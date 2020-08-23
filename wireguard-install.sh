@@ -336,18 +336,29 @@ function revokeClient() {
 
 	echo ""
 	echo "Select the existing client you want to revoke"
-	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
-	until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
-		if [[ ${CLIENT_NUMBER} == '1' ]]; then
-			read -rp "Select one client [1]: " CLIENT_NUMBER
-		else
-			read -rp "Select one client [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+
+	if [[ -z ${CLIENT_NAME} ]]; then
+		grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
+		until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]] || [[ -n ${CLIENT_NAME} ]]; do
+			if [[ ${CLIENT_NUMBER} == '1' ]]; then
+				read -rp "Select one client [1]: " CLIENT_NUMBER
+			else
+				read -rp "Select one client [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+			fi
+		done
+
+		# match the selected number to a client name
+		CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
+	else
+		CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+
+		if [[ ${CLIENT_EXISTS} == '1' ]]; then
+			echo ""
+			echo "The client with the specified name doesn't exists."
+			echo ""
+			exit 1
 		fi
-	done
-
-	# match the selected number to a client name
-	CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
-
+	fi
 	# remove [Peer] block matching $CLIENT_NAME
 	sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/d" "/etc/wireguard/${SERVER_WG_NIC}.conf"
 
