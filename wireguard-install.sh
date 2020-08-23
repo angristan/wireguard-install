@@ -139,8 +139,7 @@ function installWireGuard() {
 		CLIENT_DNS_1=${CLIENT_DNS_1:-176.103.130.130}
 		CLIENT_DNS_2=${CLIENT_DNS_2:-176.103.130.131}
 		CLIENT_NAME=${CLIENT_NAME:-client}
-		CLIENT_DOT_IPV4=${CLIENT_DOT_IPV4:-2}
-		CLIENT_DOT_IPV6=${CLIENT_DOT_IPV6:-2}
+		CLIENT_DOT=${CLIENT_DOT:-2}
 
 		# Behind NAT, we'll default to the publicly reachable IPv4.
 		SERVER_PUB_IP=${SERVER_PUB_IP:-$(curl https://ifconfig.co)}
@@ -270,10 +269,10 @@ function newClient() {
 	fi
 
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
-		until [[ ${CLIENT_DOT_IPV4} =~ ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
-			read -rp "Client's WireGuard IPv4: ${SERVER_WG_IPV4::-1}" -e -i "${CLIENT_DOT_IPV4}" CLIENT_DOT_IPV4
+		until [[ ${CLIENT_DOT} =~ ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
+			read -rp "Client's WireGuard Host ID (valid for both IPv4 and IPv6): ${SERVER_WG_IPV4::-1}" -e -i "${CLIENT_DOT}" CLIENT_DOT
 		done
-		CLIENT_WG_IPV4="${SERVER_WG_IPV4::-1}${CLIENT_DOT_IPV4}"
+		CLIENT_WG_IPV4="${SERVER_WG_IPV4::-1}${CLIENT_DOT}"
 		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
 		if [[ ${IPV4_EXISTS} == '1' ]]; then
@@ -282,20 +281,7 @@ function newClient() {
 			echo ""
 		fi
 	done
-
-	until [[ ${IPV6_EXISTS} == '0' ]]; do
-		until [[ ${CLIENT_DOT_IPV6} =~ ^[a-f0-9]{1,4}$ ]]; do
-			read -rp "Client's WireGuard IPv6: ${SERVER_WG_IPV6::-1}" -e -i "${CLIENT_DOT_IPV4}" CLIENT_DOT_IPV6
-		done
-		CLIENT_WG_IPV6="${SERVER_WG_IPV6::-1}${CLIENT_DOT_IPV6}"
-		IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}" "/etc/wireguard/${SERVER_WG_NIC}.conf")
-
-		if [[ ${IPV6_EXISTS} == '1' ]]; then
-			echo ""
-			echo "A client with the specified IPv6 was already created, please choose another IPv6."
-			echo ""
-		fi
-	done
+	CLIENT_WG_IPV6="${SERVER_WG_IPV6::-1}${CLIENT_DOT}"
 
 	# Generate key pair for the client
 	CLIENT_PRIV_KEY=$(wg genkey)

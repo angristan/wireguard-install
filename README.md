@@ -62,10 +62,9 @@ If you want to customise your installation, you can export them or specify them 
 - `CLIENT_DNS_1=176.103.130.130`
 - `CLIENT_DNS_2=176.103.130.131`
 - `CLIENT_NAME=client`
-- `CLIENT_DOT_IPV4=2`
-- `CLIENT_DOT_IPV6=2`
+- `CLIENT_DOT=2`
 
-If the server is behind NAT, you can specify its endpoint with the `SERVER_PUB_IP` variable. If the endpoint is the public IP address which it is behind, you can use `SERVER_PUB_IP=$(curl ifconfig.co)` (the script will default to this). The endpoint can be an IP or a domain.
+If the server is behind NAT, you can specify its endpoint with the `SERVER_PUB_IP` variable. If the endpoint is the public IP address which it is behind, you can use `SERVER_PUB_IP=$(curl https://ifconfig.co)` (the script will default to this). The endpoint can be an IP or a domain.
 
 Other variables can be set depending on your choice (`SERVER_NIC`). You can search for them in the `installQuestions()` function of the script.
 
@@ -79,8 +78,7 @@ The following Bash script adds a new user `foo` to an existing WireGuard configu
 #!/bin/bash
 export MENU_OPTION="1"
 export CLIENT_NAME="foo"
-export CLIENT_DOT_IPV4="3"
-export CLIENT_DOT_IPV6="3"
+export CLIENT_DOT="3"
 ./wireguard-install.sh
 ```
 
