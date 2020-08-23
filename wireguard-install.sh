@@ -279,6 +279,7 @@ function newClient() {
 			echo ""
 			echo "A client with the specified IPv4 was already created, please choose another IPv4."
 			echo ""
+			exit 1
 		fi
 	done
 	CLIENT_WG_IPV6="${SERVER_WG_IPV6::-1}${CLIENT_DOT}"
