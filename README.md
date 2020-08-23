@@ -72,13 +72,12 @@ Other variables can be set depending on your choice (`SERVER_NIC`). You can sear
 
 It's also possible to automate the addition of a new user. Here, the key is to provide the (string) value of the `MENU_OPTION` variable along with the remaining mandatory variables before invoking the script.
 
-The following Bash script adds a new user `foo` to an existing WireGuard configuration
+The following Bash script adds a new user `foo` to an existing WireGuard configuration. The wireguard-install script will automatically assign a free IP to the client. You can assign a specific one by setting its Host ID to the variable `CLIENT_DOT`.
 
 ```bash
 #!/bin/bash
 export MENU_OPTION="1"
 export CLIENT_NAME="foo"
-export CLIENT_DOT="3"
 ./wireguard-install.sh
 ```
 
