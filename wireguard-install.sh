@@ -276,11 +276,17 @@ function newClient() {
 		HOME_DIR="/root"
 	fi
 
+    # Read MTU value
+    if [ -f "/sys/class/net/${SERVER_WG_NIC}/mtu" ]; then
+        CLIENT_MTU="MTU = $(cat /sys/class/net/${SERVER_WG_NIC}/mtu)"
+    fi
+
 	# Create client file and add the server as a peer
 	echo "[Interface]
 PrivateKey = ${CLIENT_PRIV_KEY}
 Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
 DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
+${CLIENT_MTU}
 
 [Peer]
 PublicKey = ${SERVER_PUB_KEY}
