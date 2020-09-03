@@ -330,7 +330,8 @@ function revokeClient() {
 	sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/d" "/etc/wireguard/${SERVER_WG_NIC}.conf"
 
 	# remove generated client file
-	rm -f "${HOME}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+	find /home/ -maxdepth 2 -name "${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf" -delete
+	rm -f "/root/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 
 	# restart wireguard to apply changes
 	systemctl restart "wg-quick@${SERVER_WG_NIC}"
