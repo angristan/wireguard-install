@@ -270,9 +270,9 @@ function newClient() {
 
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
 		until [[ ${CLIENT_DOT} =~ ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
-			read -rp "Client's WireGuard Host ID (valid for both IPv4 and IPv6): ${SERVER_WG_IPV4::-1}" -e -i "${CLIENT_DOT}" CLIENT_DOT
+			read -rp "Client's WireGuard Host ID (valid for both IPv4 and IPv6): ${SERVER_WG_IPV4%.*}." -e -i "${CLIENT_DOT}" CLIENT_DOT
 		done
-		CLIENT_WG_IPV4="${SERVER_WG_IPV4::-1}${CLIENT_DOT}"
+		CLIENT_WG_IPV4="${SERVER_WG_IPV4%.*}.${CLIENT_DOT}"
 		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
 		if [[ ${IPV4_EXISTS} == '1' ]]; then
@@ -282,7 +282,7 @@ function newClient() {
 			exit 1
 		fi
 	done
-	CLIENT_WG_IPV6="${SERVER_WG_IPV6::-1}${CLIENT_DOT}"
+	CLIENT_WG_IPV6="${SERVER_WG_IPV6%:*}:${CLIENT_DOT}"
 
 	# Generate key pair for the client
 	CLIENT_PRIV_KEY=$(wg genkey)
