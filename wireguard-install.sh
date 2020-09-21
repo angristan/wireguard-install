@@ -31,12 +31,10 @@ function checkOS() {
 	if [[ -e /etc/debian_version ]]; then
 		source /etc/os-release
 		OS="${ID}" # debian or ubuntu
-		if [[ -e /etc/debian_version ]]; then
-			if [[ ${ID} == "debian" || ${ID} == "raspbian" ]]; then
-				if [[ ${VERSION_ID} -ne 10 ]]; then
-					echo "Your version of Debian (${VERSION_ID}) is not supported. Please use Debian 10 Buster"
-					exit 1
-				fi
+		if [[ ${ID} == "debian" || ${ID} == "raspbian" ]]; then
+			if [[ ${VERSION_ID} -ne 10 ]]; then
+				echo "Your version of Debian (${VERSION_ID}) is not supported. Please use Debian 10 Buster"
+				exit 1
 			fi
 		fi
 	elif [[ -e /etc/fedora-release ]]; then
