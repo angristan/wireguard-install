@@ -141,7 +141,13 @@ function installWireGuard() {
 		yum -y install epel-release kernel kernel-devel kernel-headers
 		yum -y install wireguard-dkms wireguard-tools iptables qrencode
 	elif [[ ${OS} == 'arch' ]]; then
-		pacman -S --noconfirm linux-headers
+		# Check if current running kernel is LTS
+		ARCH_KERNEL_RELEASE=$(uname -r)
+		if [[ ${ARCH_KERNEL_RELEASE} == *lts* ]]; then
+			pacman -S --noconfirm linux-lts-headers
+		else
+			pacman -S --noconfirm linux-headers
+		fi
 		pacman -S --noconfirm wireguard-tools iptables qrencode
 	fi
 
