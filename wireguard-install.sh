@@ -41,6 +41,7 @@ function checkOS() {
 		source /etc/os-release
 		OS="${ID}"
 	elif [[ -e /etc/centos-release ]]; then
+		source /etc/os-release
 		OS=centos
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
@@ -137,9 +138,11 @@ function installWireGuard() {
 		fi
 		dnf install -y wireguard-tools iptables qrencode
 	elif [[ ${OS} == 'centos' ]]; then
-		curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
-		yum -y install epel-release kernel kernel-devel kernel-headers
-		yum -y install wireguard-dkms wireguard-tools iptables qrencode
+		yum -y install epel-release elrepo-release
+		if [[ ${VERSION_ID} -eq 7 ]]; then
+			yum -y install yum-plugin-elrepo
+		fi
+		yum -y install kmod-wireguard wireguard-tools iptables qrencode
 	elif [[ ${OS} == 'arch' ]]; then
 		# Check if current running kernel is LTS
 		ARCH_KERNEL_RELEASE=$(uname -r)
@@ -358,8 +361,7 @@ function uninstallWg() {
 		fi
 		dnf autoremove -y
 	elif [[ ${OS} == 'centos' ]]; then
-		yum -y remove wireguard-dkms wireguard-tools qrencode
-		rm -f "/etc/yum.repos.d/wireguard.repo"
+		yum -y remove kmod-wireguard wireguard-tools qrencode
 		yum -y autoremove
 	elif [[ ${OS} == 'arch' ]]; then
 		pacman -Rs --noconfirm wireguard-tools qrencode
