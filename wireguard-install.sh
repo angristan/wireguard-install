@@ -286,7 +286,7 @@ function newClient() {
 	# Create client file and add the server as a peer
 	echo "[Interface]
 PrivateKey = ${CLIENT_PRIV_KEY}
-Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
+Address = ${CLIENT_WG_IPV4}/24,${CLIENT_WG_IPV6}/64
 DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
 
 [Peer]
