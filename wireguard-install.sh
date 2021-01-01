@@ -147,11 +147,11 @@ function installWireGuard() {
 		# Check if current running kernel is LTS
 		ARCH_KERNEL_RELEASE=$(uname -r)
 		if [[ ${ARCH_KERNEL_RELEASE} == *lts* ]]; then
-			pacman -S --noconfirm linux-lts-headers
+			pacman -S --needed --noconfirm linux-lts-headers
 		else
-			pacman -S --noconfirm linux-headers
+			pacman -S --needed --noconfirm linux-headers
 		fi
-		pacman -S --noconfirm wireguard-tools iptables qrencode
+		pacman -S --needed --noconfirm wireguard-tools iptables qrencode
 	fi
 
 	# Make sure the directory exists (this does not seem the be the case on fedora)
