@@ -302,7 +302,7 @@ PublicKey = ${CLIENT_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
 AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
 
-	systemctl restart "wg-quick@${SERVER_WG_NIC}"
+	wg syncconf ${SERVER_WG_NIC} <(wg-quick strip ${SERVER_WG_NIC})
 
 	echo -e "\nHere is your client config file as a QR Code:"
 
@@ -340,7 +340,7 @@ function revokeClient() {
 	rm -f "${HOME}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 
 	# restart wireguard to apply changes
-	systemctl restart "wg-quick@${SERVER_WG_NIC}"
+	wg syncconf ${SERVER_WG_NIC} <(wg-quick strip ${SERVER_WG_NIC})
 }
 
 function uninstallWg() {
