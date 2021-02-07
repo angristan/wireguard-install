@@ -156,8 +156,8 @@ function installWireGuard() {
 			apt-get install -y -t buster-backports wireguard
 		fi
 
-	elif [[ ${OS} == 'fedora' ]] && [[ $Container != 1 ]]; then
-		if [[ ${VERSION_ID} -lt 32 ]]; then
+	elif [[ ${OS} == 'fedora' ]]; then
+		if [[ ${VERSION_ID} -lt 32 ]] && [[ $Container != 1 ]]; then
 			dnf install -y dnf-plugins-core
 			dnf copr enable -y jdoss/wireguard
 			dnf install -y wireguard-dkms
