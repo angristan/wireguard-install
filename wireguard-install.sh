@@ -12,17 +12,32 @@ function isRoot() {
 
 function checkVirt() {
 	if [ "$(systemd-detect-virt)" == "openvz" ]; then
-		echo "OpenVZ is not supported"
-		exit 1
+		if ip link add wg999 type wireguard 2> /dev/null ; then
+			echo "OpenVZ is not supported, but it seems to have correct kernel modules."
+			ip link del wg999
+			read -p "Press enter to continue at your own risk, or CTRL-C to quit."
+			Container=1
+		else
+			echo "OpenVZ is not supported"
+			exit 1
+		fi
 	fi
-
 	if [ "$(systemd-detect-virt)" == "lxc" ]; then
-		echo "LXC is not supported (yet)."
-		echo "WireGuard can technically run in an LXC container,"
-		echo "but the kernel module has to be installed on the host,"
-		echo "the container has to be run with some specific parameters"
-		echo "and only the tools need to be installed in the container."
-		exit 1
+		if ip link add wg999 type wireguard 2> /dev/null ; then
+			ip link del wg999
+			echo "LXC is currently in Beta."
+			echo "WireGuard can technically run in an LXC container,"
+			echo "but the kernel module has to be installed on the host,"
+			echo "the container has to be run with some specific parameters"
+			echo "and only the tools need to be installed in the container."
+			echo "The Kernel seems to support Wireguard."
+			read -p "Press enter to continue at your own risk, or CTRL-C to quit."
+			Container=1
+		else
+			echo "Your LXC host does not have the WireGuard Kernel Module."
+			echo "If you have access to the host, try installing wireguard-dkms on it."
+			exit 1
+		fi
 	fi
 }
 
@@ -121,7 +136,13 @@ function installWireGuard() {
 	# Install WireGuard tools and module
 	if [[ ${OS} == 'ubuntu' ]]; then
 		apt-get update
-		apt-get install -y wireguard iptables resolvconf qrencode
+		if [[ $Container == 1 ]]; then
+			apt-get install -y wireguard-tools --no-install-recommends
+			apt-get install -y iptables resolvconf qrencode
+		else
+			apt-get install -y wireguard iptables resolvconf qrencode
+		fi
+
 	elif [[ ${OS} == 'debian' ]]; then
 		if ! grep -rqs "^deb .* buster-backports" /etc/apt/; then
 			echo "deb http://deb.debian.org/debian buster-backports main" >/etc/apt/sources.list.d/backports.list
@@ -129,8 +150,13 @@ function installWireGuard() {
 		fi
 		apt update
 		apt-get install -y iptables resolvconf qrencode
-		apt-get install -y -t buster-backports wireguard
-	elif [[ ${OS} == 'fedora' ]]; then
+		if [[ $Container == 1 ]]; then
+			apt-get install -y -t buster-backports wireguard-tools --no-install-recommends
+		else
+			apt-get install -y -t buster-backports wireguard
+		fi
+
+	elif [[ ${OS} == 'fedora' ]] && [[ $Container != 1 ]]; then
 		if [[ ${VERSION_ID} -lt 32 ]]; then
 			dnf install -y dnf-plugins-core
 			dnf copr enable -y jdoss/wireguard
@@ -142,7 +168,11 @@ function installWireGuard() {
 		if [[ ${VERSION_ID} -eq 7 ]]; then
 			yum -y install yum-plugin-elrepo
 		fi
-		yum -y install kmod-wireguard wireguard-tools iptables qrencode
+		if [[ $Container == 1 ]]; then
+			yum -y install wireguard-tools iptables qrencode
+		else
+			yum -y install kmod-wireguard wireguard-tools iptables qrencode
+		fi
 	elif [[ ${OS} == 'arch' ]]; then
 		# Check if current running kernel is LTS
 		ARCH_KERNEL_RELEASE=$(uname -r)
@@ -353,9 +383,9 @@ function uninstallWg() {
 		systemctl disable "wg-quick@${SERVER_WG_NIC}"
 
 		if [[ ${OS} == 'ubuntu' ]]; then
-			apt-get autoremove --purge -y wireguard qrencode
+			apt-get autoremove --purge -y wireguard wireguard-tools qrencode
 		elif [[ ${OS} == 'debian' ]]; then
-			apt-get autoremove --purge -y wireguard qrencode
+			apt-get autoremove --purge -y wireguard wireguard-tools qrencode
 		elif [[ ${OS} == 'fedora' ]]; then
 			dnf remove -y wireguard-tools qrencode
 			if [[ ${VERSION_ID} -lt 32 ]]; then
