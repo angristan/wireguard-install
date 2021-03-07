@@ -185,11 +185,12 @@ PrivateKey = ${SERVER_PRIV_KEY}" >"/etc/wireguard/${SERVER_WG_NIC}.conf"
 		FIREWALLD_IPV6_ADDRESS=$(echo "${SERVER_WG_IPV6}" | sed 's/:[^:]*$/:0/')
 
 		until [[ ${ZONE} =~ ^[a-zA-Z0-9_]+$ && ${#ZONE} -lt 16 ]]; do
-			read -rp "Choose your firewalld zone: " -e -i "`firewall-cmd --get-default-zone`" ZONE
+			read -rp "Choose your firewalld zone: " -e -i "$(firewall-cmd --get-default-zone)" ZONE
 		done
 
-		echo "PostUp = firewall-cmd --zone=${ZONE} --add-port ${SERVER_PORT}/udp && firewall-cmd --zone=${ZONE}  --add-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && firewall-cmd --zone=${ZONE}  --add-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/24 masquerade'
-PostDown = firewall-cmd --zone=${ZONE}  --remove-port ${SERVER_PORT}/udp && firewall-cmd --zone=${ZONE}  --remove-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && firewall-cmd --zone=${ZONE}  --remove-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/24 masquerade'" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
+		FW="firewall-cmd --zone=${ZONE}"
+		echo "PostUp = ${FW} --add-port ${SERVER_PORT}/udp && ${FW}  --add-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && ${FW} --add-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/24 masquerade && firewall-cmd --zone && ${FW} --add-interface=${SERVER_WG_NIC}'
+PostDown = ${FW} --remove-port ${SERVER_PORT}/udp && ${FW}  --remove-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && ${FW} --remove-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/24 masquerade' && ${FW} --remove-interface=${SERVER_WG_NIC}" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
 	else
 		echo "PostUp = iptables -A FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEPT; iptables -A FORWARD -i ${SERVER_WG_NIC} -j ACCEPT; iptables -t nat -A POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE; ip6tables -A FORWARD -i ${SERVER_WG_NIC} -j ACCEPT; ip6tables -t nat -A POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE
 PostDown = iptables -D FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEPT; iptables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT; iptables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE; ip6tables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT; ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
