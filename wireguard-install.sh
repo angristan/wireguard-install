@@ -275,11 +275,19 @@ function newClient() {
 	CLIENT_PRE_SHARED_KEY=$(wg genpsk)
 
 	# Home directory of the user, where the client configuration will be written
-	if [ -e "/home/${CLIENT_NAME}" ]; then # if $1 is a user name
+	if [ -e "/home/${CLIENT_NAME}" ]; then
+		# if $1 is a user name
 		HOME_DIR="/home/${CLIENT_NAME}"
-	elif [ "${SUDO_USER}" ]; then # if not, use SUDO_USER
-		HOME_DIR="/home/${SUDO_USER}"
-	else # if not SUDO_USER, use /root
+	elif [ "${SUDO_USER}" ]; then
+		# if not, use SUDO_USER
+		if [ "${SUDO_USER}" == "root" ]; then
+			# If running sudo as root
+			HOME_DIR="/root"
+		else
+			HOME_DIR="/home/${SUDO_USER}"
+		fi
+	else
+		# if not SUDO_USER, use /root
 		HOME_DIR="/root"
 	fi
 
