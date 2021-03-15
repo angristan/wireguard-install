@@ -66,16 +66,24 @@ function installQuestions() {
 	echo ""
 
 	# Detect public IPv4 or IPv6 address and pre-fill for the user
-	SERVER_PUB_IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)
+	SERVER_PUB_IP=${SERVER_PUB_IP:-$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)}
 	if [[ -z ${SERVER_PUB_IP} ]]; then
 		# Detect public IPv6 address
 		SERVER_PUB_IP=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | head -1)
 	fi
-	read -rp "IPv4 or IPv6 public address: " -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
+
+	APPROVE_IP=${APPROVE_IP:-n}
+	if [[ ${APPROVE_IP} =~ n ]]; then
+		read -rp "IPv4 or IPv6 public address: " -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
+	fi
 
 	# Detect public interface and pre-fill for the user
-	SERVER_NIC="$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)"
-	until [[ ${SERVER_PUB_NIC} =~ ^[a-zA-Z0-9_]+$ ]]; do
+	SERVER_NIC=${SERVER_NIC:-$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)}
+	if [[ -z $SERVER_NIC ]]; then
+		SERVER_NIC=$(ip -6 route show default | sed -ne 's/^default .* dev \([^ ]*\) .*$/\1/p')
+	fi
+	APPROVE_NIC=${APPROVE_NIC:-n}
+	until [[ ${SERVER_PUB_NIC} =~ ^[a-zA-Z0-9_]+$ || ${APPROVE_NIC} =~ n ]]; do
 		read -rp "Public interface: " -e -i "${SERVER_NIC}" SERVER_PUB_NIC
 	done
 
@@ -111,12 +119,33 @@ function installQuestions() {
 	echo ""
 	echo "Okay, that was all I needed. We are ready to setup your WireGuard server now."
 	echo "You will be able to generate a client at the end of the installation."
-	read -n1 -r -p "Press any key to continue..."
+	APPROVE_INSTALL=${APPROVE_INSTALL:-n}
+	if [[ $APPROVE_INSTALL =~ n ]]; then
+		read -n1 -r -p "Press any key to continue..."
+	fi
 }
 
 function installWireGuard() {
-	# Run setup questions first
-	installQuestions
+	if [[ ${AUTO_INSTALL} == "y" ]]; then
+		# Set default choices so that no questions will be asked.
+		APPROVE_INSTALL=${APPROVE_INSTALL:-y}
+		APPROVE_IP=${APPROVE_IP:-y}
+		APPROVE_NIC=${APPROVE_NIC:-y}
+		SERVER_WG_NIC=${SERVER_WG_NIC:-wg0}
+		SERVER_WG_IPV4=${SERVER_WG_IPV4:-10.66.66.1}
+		SERVER_WG_IPV6=${SERVER_WG_IPV6:-fd42:42:42::1}
+		SERVER_PORT=${SERVER_PORT:-$(shuf -i49152-65535 -n1)}
+		CLIENT_DNS_1=${CLIENT_DNS_1:-176.103.130.130}
+		CLIENT_DNS_2=${CLIENT_DNS_2:-176.103.130.131}
+		CLIENT_NAME=${CLIENT_NAME:-client}
+		CLIENT_DOT=${CLIENT_DOT:-2}
+
+		# Behind NAT, we'll default to the publicly reachable IPv4.
+		SERVER_PUB_IP=${SERVER_PUB_IP:-$(curl https://ifconfig.co)}
+	else
+		# Run setup questions first
+		installQuestions
+	fi
 
 	# Install WireGuard tools and module
 	if [[ ${OS} == 'ubuntu' ]]; then
@@ -229,6 +258,7 @@ function newClient() {
 			echo ""
 			echo "A client with the specified name was already created, please choose another name."
 			echo ""
+			exit 1
 		fi
 	done
 
@@ -246,28 +276,20 @@ function newClient() {
 	fi
 
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
-		read -rp "Client's WireGuard IPv4: ${SERVER_WG_IPV4::-1}" -e -i "${DOT_IP}" DOT_IP
-		CLIENT_WG_IPV4="${SERVER_WG_IPV4::-1}${DOT_IP}"
+		until [[ ${CLIENT_DOT} =~ ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
+			read -rp "Client's WireGuard Host ID (valid for both IPv4 and IPv6): ${SERVER_WG_IPV4%.*}." -e -i "${DOT_IP}" CLIENT_DOT
+		done
+		CLIENT_WG_IPV4="${SERVER_WG_IPV4%.*}.${CLIENT_DOT}"
 		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
 		if [[ ${IPV4_EXISTS} == '1' ]]; then
 			echo ""
 			echo "A client with the specified IPv4 was already created, please choose another IPv4."
 			echo ""
+			exit 1
 		fi
 	done
-
-	until [[ ${IPV6_EXISTS} == '0' ]]; do
-		read -rp "Client's WireGuard IPv6: ${SERVER_WG_IPV6::-1}" -e -i "${DOT_IP}" DOT_IP
-		CLIENT_WG_IPV6="${SERVER_WG_IPV6::-1}${DOT_IP}"
-		IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}" "/etc/wireguard/${SERVER_WG_NIC}.conf")
-
-		if [[ ${IPV6_EXISTS} == '1' ]]; then
-			echo ""
-			echo "A client with the specified IPv6 was already created, please choose another IPv6."
-			echo ""
-		fi
-	done
+	CLIENT_WG_IPV6="${SERVER_WG_IPV6%:*}:${CLIENT_DOT}"
 
 	# Generate key pair for the client
 	CLIENT_PRIV_KEY=$(wg genkey)
@@ -329,18 +351,29 @@ function revokeClient() {
 
 	echo ""
 	echo "Select the existing client you want to revoke"
-	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
-	until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
-		if [[ ${CLIENT_NUMBER} == '1' ]]; then
-			read -rp "Select one client [1]: " CLIENT_NUMBER
-		else
-			read -rp "Select one client [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+
+	if [[ -z ${CLIENT_NAME} ]]; then
+		grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
+		until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]] || [[ -n ${CLIENT_NAME} ]]; do
+			if [[ ${CLIENT_NUMBER} == '1' ]]; then
+				read -rp "Select one client [1]: " CLIENT_NUMBER
+			else
+				read -rp "Select one client [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+			fi
+		done
+
+		# match the selected number to a client name
+		CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
+	else
+		CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+
+		if [[ ${CLIENT_EXISTS} == '1' ]]; then
+			echo ""
+			echo "The client with the specified name doesn't exists."
+			echo ""
+			exit 1
 		fi
-	done
-
-	# match the selected number to a client name
-	CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
-
+	fi
 	# remove [Peer] block matching $CLIENT_NAME
 	sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/d" "/etc/wireguard/${SERVER_WG_NIC}.conf"
 
