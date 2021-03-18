@@ -3,6 +3,10 @@
 # Secure WireGuard server installer for Debian, Ubuntu, CentOS, Fedora and Arch Linux
 # https://github.com/angristan/wireguard-install
 
+RED='\033[0;31m'
+ORANGE='\033[0;33m'
+NC='\033[0m'
+
 function isRoot() {
 	if [ "${EUID}" -ne 0 ]; then
 		echo "You need to run this script as root"
@@ -199,19 +203,19 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 	systemctl start "wg-quick@${SERVER_WG_NIC}"
 	systemctl enable "wg-quick@${SERVER_WG_NIC}"
 
+	newClient
+	echo "If you want to add more clients, you simply need to run this script another time!"
+
 	# Check if WireGuard is running
 	systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
 	WG_RUNNING=$?
 
 	# WireGuard might not work if we updated the kernel. Tell the user to reboot
 	if [[ ${WG_RUNNING} -ne 0 ]]; then
-		echo -e "\nWARNING: WireGuard does not seem to be running."
-		echo "You can check if WireGuard is running with: systemctl status wg-quick@${SERVER_WG_NIC}"
-		echo "If you get something like \"Cannot find device ${SERVER_WG_NIC}\", please reboot!"
+		echo -e "\n${RED}WARNING: WireGuard does not seem to be running.${NC}"
+		echo -e "${ORANGE}You can check if WireGuard is running with: systemctl status wg-quick@${SERVER_WG_NIC}${NC}"
+		echo -e "${ORANGE}If you get something like \"Cannot find device ${SERVER_WG_NIC}\", please reboot!${NC}"
 	fi
-
-	newClient
-	echo "If you want to add more clients, you simply need to run this script another time!"
 }
 
 function newClient() {
