@@ -219,7 +219,7 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 }
 
 function newClient() {
-	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
+	ENDPOINT="$(grep -m 1 -oE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' <<< "$(wget -T 10 -t 1 -4qO- "http://ip1.dynupdate.no-ip.com/" || curl -m 10 -4Ls "http://ip1.dynupdate.no-ip.com/")"):${SERVER_PORT}"
 
 	echo ""
 	echo "Tell me a name for the client."
