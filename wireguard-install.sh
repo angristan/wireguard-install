@@ -87,7 +87,7 @@ function installQuestions() {
 		read -rp "WireGuard interface name: " -e -i wg0 SERVER_WG_NIC
 	done
 
-	until [[ ${SERVER_WG_IPV4} =~ ^([0-9]{1,3}\.){3} ]]; do
+	until [[ ${SERVER_WG_IPV4} =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3} ]]; do
 		read -rp "Server's WireGuard IPv4: " -e -i 10.66.66.1 SERVER_WG_IPV4
 	done
 
