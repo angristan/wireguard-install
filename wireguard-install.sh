@@ -134,6 +134,10 @@ function installWireGuard() {
 		apt update
 		apt-get install -y iptables resolvconf qrencode
 		apt-get install -y -t buster-backports wireguard
+	elif [[ ${OS} == 'raspbian' ]]; then
+		apt update
+		apt-get install -y iptables resolvconf qrencode
+		apt-get install -y wireguard
 	elif [[ ${OS} == 'fedora' ]]; then
 		if [[ ${VERSION_ID} -lt 32 ]]; then
 			dnf install -y dnf-plugins-core
@@ -368,7 +372,7 @@ function uninstallWg() {
 
 		if [[ ${OS} == 'ubuntu' ]]; then
 			apt-get autoremove --purge -y wireguard qrencode
-		elif [[ ${OS} == 'debian' ]]; then
+		elif [[ ${OS} == 'debian' || ${OS} == 'raspbian' ]]; then
 			apt-get autoremove --purge -y wireguard qrencode
 		elif [[ ${OS} == 'fedora' ]]; then
 			dnf remove -y wireguard-tools qrencode
