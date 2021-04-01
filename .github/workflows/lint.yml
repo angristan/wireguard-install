@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: shellcheck
-        uses: ludeeus/action-shellcheck@1.0.0
+        uses: ludeeus/action-shellcheck@1.1.0
         env:
           SHELLCHECK_OPTS: -e SC1091,SC1117,SC2001,SC2034
 
