@@ -132,8 +132,8 @@ function installWireGuard() {
 			apt-get update
 		fi
 		apt update
-		apt-get install -y iptables resolvconf qrencode
-		apt-get install -y -t buster-backports wireguard
+		apt-get install -y iptables resolvconf qrencode 
+		apt-get install -y -t buster-backports wireguard wireguard-dkms
 	elif [[ ${OS} == 'fedora' ]]; then
 		if [[ ${VERSION_ID} -lt 32 ]]; then
 			dnf install -y dnf-plugins-core
