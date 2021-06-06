@@ -376,8 +376,8 @@ function uninstallWg() {
 		elif [[ ${OS} == 'arch' ]]; then
 			pacman -Rs --noconfirm wireguard-tools qrencode
 		fi
-
-		rm -rf /etc/wireguard
+		
+		#rm -rf /etc/wireguard
 		rm -f /etc/sysctl.d/wg.conf
 
 		# Reload sysctl
