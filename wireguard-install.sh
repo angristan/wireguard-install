@@ -132,6 +132,7 @@ function installWireGuard() {
 			apt-get update
 		fi
 		apt update
+		apt-get install -y wireguard-dkms
 		apt-get install -y iptables resolvconf qrencode
 		apt-get install -y -t buster-backports wireguard
 	elif [[ ${OS} == 'fedora' ]]; then
