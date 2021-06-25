@@ -19,6 +19,7 @@ Supported distributions:
 - Ubuntu >= 16.04
 - Debian 10
 - Fedora
+- Oracle Linux
 - CentOS
 - Arch Linux
 
