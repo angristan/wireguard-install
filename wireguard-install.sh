@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Secure WireGuard server installer for Debian, Ubuntu, CentOS, Fedora and Arch Linux
+# Secure WireGuard server installer for Debian, Ubuntu, CentOS, Fedora, Oracle Linux and Arch Linux
 # https://github.com/angristan/wireguard-install
 
 RED='\033[0;31m'
@@ -49,8 +49,11 @@ function checkOS() {
 		OS=centos
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
+	elif [[ -e /etc/oracle-release ]]; then
+	        source /etc/oracle-release
+		OS=oracle
 	else
-		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
+		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, Oracle Linux or Arch Linux system"
 		exit 1
 	fi
 }
@@ -141,6 +144,11 @@ function installWireGuard() {
 			dnf install -y wireguard-dkms
 		fi
 		dnf install -y wireguard-tools iptables qrencode
+	elif [[ ${OS} == 'oracle' ]]; then
+			dnf install -y dnf-plugins-core
+			dnf copr enable -y jdoss/wireguard
+			dnf install -y wireguard-dkms
+		    dnf install -y wireguard-tools iptables qrencode
 	elif [[ ${OS} == 'centos' ]]; then
 		yum -y install epel-release elrepo-release
 		if [[ ${VERSION_ID} -eq 7 ]]; then
@@ -370,6 +378,11 @@ function uninstallWg() {
 				dnf copr disable -y jdoss/wireguard
 			fi
 			dnf autoremove -y
+		elif [[ ${OS} == 'oracle' ]]; then
+			dnf remove -y wireguard-tools qrencode
+				dnf remove -y wireguard-dkms
+				dnf copr disable -y jdoss/wireguard
+				dnf autoremove -y
 		elif [[ ${OS} == 'centos' ]]; then
 			yum -y remove kmod-wireguard wireguard-tools qrencode
 			yum -y autoremove
