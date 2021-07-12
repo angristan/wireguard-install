@@ -44,3 +44,7 @@ I recommend these cheap cloud providers for your VPN server:
 - [Hetzner](https://hetzner.cloud/?ref=ywtlvZsjgeDq): Germany and Finland, IPv6, 20 TB of traffic, starting at €3/month
 - [Digital Ocean](https://goo.gl/qXrNLK): Worldwide locations, IPv6 support, starting at \$5/month
 - [PulseHeberg](https://goo.gl/76yqW5): France, unlimited bandwidth, starting at €3/month
+
+## Reference
+
+- [YouTube](https://youtu.be/IEb1U6V1s3A): How To Setup WireGuard Virtual Private Network
