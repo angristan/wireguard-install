@@ -47,4 +47,4 @@ I recommend these cheap cloud providers for your VPN server:
 
 ## Reference
 
-- [YouTube](https://youtu.be/IEb1U6V1s3A): How To Setup WireGuard Virtual Private Network
+- [YouTube](https://youtu.be/IEb1U6V1s3A): Demonstration on how to use this bash script.
