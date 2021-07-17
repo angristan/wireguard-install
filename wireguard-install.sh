@@ -47,10 +47,13 @@ function checkOS() {
 	elif [[ -e /etc/centos-release ]]; then
 		source /etc/os-release
 		OS=centos
+	elif [[ -e /etc/rocky-release ]]; then
+		source /etc/os-release
+		OS=rocky
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
 	else
-		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
+		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, Rocky or Arch Linux system"
 		exit 1
 	fi
 }
@@ -140,6 +143,11 @@ function installWireGuard() {
 			dnf copr enable -y jdoss/wireguard
 			dnf install -y wireguard-dkms
 		fi
+		dnf install -y wireguard-tools iptables qrencode
+	elif [[ ${OS} == 'rocky' ]]; then
+			dnf install -y dnf-plugins-core
+			dnf copr enable -y jdoss/wireguard
+			dnf install -y wireguard-dkms
 		dnf install -y wireguard-tools iptables qrencode
 	elif [[ ${OS} == 'centos' ]]; then
 		yum -y install epel-release elrepo-release
@@ -369,6 +377,11 @@ function uninstallWg() {
 				dnf remove -y wireguard-dkms
 				dnf copr disable -y jdoss/wireguard
 			fi
+			dnf autoremove -y
+		elif [[ ${OS} == 'rocky' ]]; then
+			dnf remove -y wireguard-tools qrencode
+			dnf remove -y wireguard-dkms
+			dnf copr disable -y jdoss/wireguard
 			dnf autoremove -y
 		elif [[ ${OS} == 'centos' ]]; then
 			yum -y remove kmod-wireguard wireguard-tools qrencode
