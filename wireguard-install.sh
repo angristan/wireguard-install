@@ -47,10 +47,13 @@ function checkOS() {
 	elif [[ -e /etc/centos-release ]]; then
 		source /etc/os-release
 		OS=centos
+	elif [[ -e /etc/oracle-release ]]; then
+		source /etc/os-release
+		OS=oracle
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
 	else
-		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS or Arch Linux system"
+		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, Oracle or Arch Linux system"
 		exit 1
 	fi
 }
@@ -147,6 +150,12 @@ function installWireGuard() {
 			yum -y install yum-plugin-elrepo
 		fi
 		yum -y install kmod-wireguard wireguard-tools iptables qrencode
+	elif [[ ${OS} == 'oracle' ]]; then
+		dnf install -y oraclelinux-developer-release-el8
+		dnf config-manager --disable -y ol8_developer
+		dnf config-manager --enable -y ol8_developer_UEKR6
+		dnf config-manager --save -y --setopt=ol8_developer_UEKR6.includepkgs='wireguard-tools*'
+		dnf install -y wireguard-tools qrencode iptables
 	elif [[ ${OS} == 'arch' ]]; then
 		pacman -S --needed --noconfirm wireguard-tools qrencode
 	fi
@@ -372,6 +381,9 @@ function uninstallWg() {
 			dnf autoremove -y
 		elif [[ ${OS} == 'centos' ]]; then
 			yum -y remove kmod-wireguard wireguard-tools qrencode
+			yum -y autoremove
+		elif [[ ${OS} == 'oracle' ]]; then
+			yum -y remove wireguard-tools qrencode
 			yum -y autoremove
 		elif [[ ${OS} == 'arch' ]]; then
 			pacman -Rs --noconfirm wireguard-tools qrencode
