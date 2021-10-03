@@ -40,6 +40,7 @@ function checkOS() {
 				echo "Your version of Debian (${VERSION_ID}) is not supported. Please use Debian 10 Buster or later"
 				exit 1
 			fi
+			OS=debian # overwrite if raspbian
 		fi
 	elif [[ -e /etc/fedora-release ]]; then
 		source /etc/os-release
