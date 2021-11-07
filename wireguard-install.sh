@@ -404,6 +404,19 @@ function uninstallWg() {
 	fi
 }
 
+fucntion listClient() {
+	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+	if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
+		echo ""
+		echo "You have no existing clients!"
+		exit 1
+	fi
+
+	echo ""
+	
+	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
+}
+
 function manageMenu() {
 	echo "Welcome to WireGuard-install!"
 	echo "The git repository is available at: https://github.com/angristan/wireguard-install"
@@ -412,23 +425,27 @@ function manageMenu() {
 	echo ""
 	echo "What do you want to do?"
 	echo "   1) Add a new user"
-	echo "   2) Revoke existing user"
-	echo "   3) Uninstall WireGuard"
-	echo "   4) Exit"
-	until [[ ${MENU_OPTION} =~ ^[1-4]$ ]]; do
-		read -rp "Select an option [1-4]: " MENU_OPTION
+	echo "   2) List all user"
+	echo "   3) Revoke existing user"
+	echo "   4) Uninstall WireGuard"
+	echo "   5) Exit"
+	until [[ ${MENU_OPTION} =~ ^[1-5]$ ]]; do
+		read -rp "Select an option [1-5]: " MENU_OPTION
 	done
 	case "${MENU_OPTION}" in
 	1)
 		newClient
 		;;
 	2)
-		revokeClient
+		listClient
 		;;
 	3)
-		uninstallWg
+		revokeClient
 		;;
 	4)
+		uninstallWg
+		;;
+	5)
 		exit 0
 		;;
 	esac
