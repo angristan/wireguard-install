@@ -412,8 +412,7 @@ function listClient() {
 		exit 1
 	fi
 
-	echo ""
-	echo "There are ${NUMBER_OF_CLIENTS}:"
+	echo "There are ${NUMBER_OF_CLIENTS} clients:"
 
 	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
 }
