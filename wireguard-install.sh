@@ -404,7 +404,7 @@ function uninstallWg() {
 	fi
 }
 
-fucntion listClient() {
+function listClient() {
 	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 	if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
 		echo ""
@@ -413,7 +413,7 @@ fucntion listClient() {
 	fi
 
 	echo ""
-	
+
 	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
 }
 
