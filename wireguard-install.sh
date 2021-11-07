@@ -40,7 +40,6 @@ function checkOS() {
 				echo "Your version of Debian (${VERSION_ID}) is not supported. Please use Debian 10 Buster or later"
 				exit 1
 			fi
-			OS=debian # overwrite if raspbian
 		fi
 	elif [[ -e /etc/fedora-release ]]; then
 		source /etc/os-release
@@ -197,6 +196,8 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 	systemctl start "wg-quick@${SERVER_WG_NIC}"
 	systemctl enable "wg-quick@${SERVER_WG_NIC}"
 
+	cd
+	mkdir WG
 	newClient
 	echo "If you want to add more clients, you simply need to run this script another time!"
 
@@ -301,7 +302,7 @@ DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
 PublicKey = ${SERVER_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
 Endpoint = ${ENDPOINT}
-AllowedIPs = 0.0.0.0/0,::/0" >>"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+AllowedIPs = 0.0.0.0/0,::/0" >>"${HOME_DIR}/${CLIENT_NAME}.conf"
 
 	# Add the client as a peer to the server
 	echo -e "\n### Client ${CLIENT_NAME}
@@ -314,9 +315,11 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 
 	echo -e "\nHere is your client config file as a QR Code:"
 
-	qrencode -t ansiutf8 -l L <"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+	qrencode -t ansiutf8 -l L <"${HOME_DIR}/${CLIENT_NAME}.conf"
 
-	echo "It is also available in ${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+	echo "It is also available in ${HOME_DIR}/WG/${CLIENT_NAME}.conf"
+
+	mv "${CLIENT_NAME}.conf" ~/WG
 }
 
 function revokeClient() {
@@ -345,7 +348,7 @@ function revokeClient() {
 	sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/d" "/etc/wireguard/${SERVER_WG_NIC}.conf"
 
 	# remove generated client file
-	rm -f "${HOME}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+	rm -f "${HOME}/WG/${CLIENT_NAME}.conf"
 
 	# restart wireguard to apply changes
 	wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
