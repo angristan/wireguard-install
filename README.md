@@ -21,6 +21,7 @@ Supported distributions:
 - Fedora
 - CentOS
 - Arch Linux
+- Oracle Linux
 
 ## Usage
 
