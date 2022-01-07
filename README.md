@@ -22,7 +22,7 @@ Supported distributions:
 - CentOS
 - Arch Linux
 - Oracle Linux
-- Opensuse Tumbleweed
+- Opensuse Tumbleweed & Leap
 
 ## Usage
 

@@ -53,7 +53,10 @@ function checkOS() {
 		OS=oracle
 	elif [[ -e /etc/os-release ]]; then
 		source /etc/os-release
-		OS="${ID}" #openSUSE
+		OS="${ID}" #opensuse-tumbleweet
+	elif [[ -e /etc/os-release ]]; then
+		source /etc/os-release
+		OS="${ID}" #opensuse-leap
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
 	else
@@ -163,6 +166,8 @@ function installWireGuard() {
 	elif [[ ${OS} == 'arch' ]]; then
 		pacman -S --needed --noconfirm wireguard-tools qrencode
 	elif [[ ${OS} == 'opensuse-tumbleweed' ]]; then
+		zypper in wireguard-tools qrencode
+	elif [[ ${OS} == 'opensuse-leap' ]]; then
 		zypper in wireguard-tools qrencode
 	fi
 
