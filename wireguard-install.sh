@@ -53,10 +53,7 @@ function checkOS() {
 		OS=oracle
 	elif [[ -e /etc/os-release ]]; then
 		source /etc/os-release
-		OS="${ID}" #opensuse-tumbleweet
-	elif [[ -e /etc/os-release ]]; then
-		source /etc/os-release
-		OS="${ID}" #opensuse-leap
+		OS="${ID}" #openSUSE
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
 	else
