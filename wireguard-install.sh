@@ -337,7 +337,6 @@ function listClients() {
 	fi
 
 	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
-    exit 1
 
 }
 
@@ -434,8 +433,8 @@ function manageMenu() {
 	echo ""
 	echo "What do you want to do?"
 	echo "   1) Add a new user"
-	echo "   2) Revoke existing user"
-    echo "   3) List all users"
+    echo "   2) List all users"
+	echo "   3) Revoke existing user"
 	echo "   4) Uninstall WireGuard"
 	echo "   5) Exit"
 	until [[ ${MENU_OPTION} =~ ^[1-5]$ ]]; do
