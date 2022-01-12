@@ -327,7 +327,16 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 
 	echo "It is also available in ${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 }
-
+function listClients() {
+	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+	if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
+		echo ""
+		echo "You have no existing clients!"
+		exit 1
+	fi
+    
+	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
+}
 function revokeClient() {
 	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 	if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
@@ -422,22 +431,26 @@ function manageMenu() {
 	echo "What do you want to do?"
 	echo "   1) Add a new user"
 	echo "   2) Revoke existing user"
-	echo "   3) Uninstall WireGuard"
-	echo "   4) Exit"
-	until [[ ${MENU_OPTION} =~ ^[1-4]$ ]]; do
-		read -rp "Select an option [1-4]: " MENU_OPTION
+    echo "   3) List all users"
+	echo "   4) Uninstall WireGuard"
+	echo "   5) Exit"
+	until [[ ${MENU_OPTION} =~ ^[1-5]$ ]]; do
+		read -rp "Select an option [1-5]: " MENU_OPTION
 	done
 	case "${MENU_OPTION}" in
 	1)
 		newClient
 		;;
-	2)
-		revokeClient
+    2)
+		listClients
 		;;
 	3)
-		uninstallWg
+		revokeClient
 		;;
 	4)
+		uninstallWg
+		;;
+	5)
 		exit 0
 		;;
 	esac
