@@ -11,23 +11,23 @@ NC='\033[0m'
 
 function isRoot() {
 	if [ "${EUID}" -ne 0 ]; then
-		echo "{WARN}Вам нужно запустить этот скрипт от имени root-пользователя{NC}"
+		echo {WARN}"Вам нужно запустить этот скрипт от имени root-пользователя"{NC}
 		exit 1
 	fi
 }
 
 function checkVirt() {
 	if [ "$(systemd-detect-virt)" == "openvz" ]; then
-		echo "{WARN}OpenVZ не поддерживается{NC}"
+		echo {WARN}"OpenVZ не поддерживается"{NC}
 		exit 1
 	fi
 
 	if [ "$(systemd-detect-virt)" == "lxc" ]; then
-		echo "{BOLD}LXC не поддерживается (пока).{NC}"
-		echo "{BOLD}Технически WireGuard может работать в контейнере LXC,{NC}"
-		echo "{BOLD}но модуль ядра должен быть установлен на хосте,{NC}"
-		echo "{BOLD}контейнер должен быть запущен с некоторыми определенными параметрами{NC}"
-		echo "{BOLD}и только инструменты должны быть установлены в контейнер.{NC}"
+		echo {BOLD}"LXC не поддерживается (пока)."{NC}
+		echo {BOLD}"Технически WireGuard может работать в контейнере LXC,"{NC}
+		echo {BOLD}"но модуль ядра должен быть установлен на хосте,"{NC}
+		echo {BOLD}"контейнер должен быть запущен с некоторыми определенными параметрами"{NC}
+		echo {BOLD}"и только инструменты должны быть установлены в контейнер."{NC}
 		exit 1
 	fi
 }
@@ -416,18 +416,18 @@ function uninstallWg() {
 }
 
 function manageMenu() {
-	echo "{BOLD}Добро пожаловать в установку WireGuard-сервера!{NC}"
-	echo "{BOLD}Репозиторий git доступен по адресу: https://github.com/Romanoidz/wireguard-install{NC}"
+	echo {BOLD}"Добро пожаловать в установку WireGuard-сервера!"{NC}
+	echo {BOLD}"Репозиторий git доступен по адресу: https://github.com/Romanoidz/wireguard-install"{NC}
 	echo ""
-	echo "{BOLD}Похоже WireGuard уже установлен.{NC}"
+	echo {BOLD}"Похоже WireGuard уже установлен."{NC}
 	echo ""
-	echo "{BOLD}Что хотите сделать?{NC}"
-	echo "{BOLD}   1) Добавить нового пользователя{NC}"
-	echo "{BOLD}   2) Отозвать существующего пользователя{NC}"
-	echo "{BOLD}   3) Удалить WireGuard{NC}
-	echo "{BOLD}   4) Выйти{NC}"
+	echo {BOLD}"Что хотите сделать?"{NC}
+	echo {BOLD}"   1) Добавить нового пользователя"{NC}
+	echo {BOLD}"   2) Отозвать существующего пользователя"{NC}
+	echo {BOLD}"   3) Удалить WireGuard"{NC}
+	echo {BOLD}"   4) Выйти"{NC}"
 	until [[ ${MENU_OPTION} =~ ^[1-4]$ ]]; do
-		read -rp "Выберите опцию [1-4]: " MENU_OPTION
+		read -rp {BOLD}"Выберите опцию [1-4]: "{NC} MENU_OPTION
 	done
 	case "${MENU_OPTION}" in
 	1)
