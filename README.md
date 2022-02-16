@@ -1,9 +1,5 @@
 # WireGuard installer
 
-![Lint](https://github.com/Romanoidz/wireguard-install/workflows/Lint/badge.svg)
-![visitors](https://visitor-badge.glitch.me/badge?page_id=Romanoidz.wireguard-install)
-[![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/Romanoidz)
-
 **Этот скрипт представляет собой сценарий bash, целью которого является настройка [WireGuard](https://www.wireguard.com /) VPN на сервере Linux, как можно проще!**
 
 WireGuard - это point-to-point VPN, который можно использовать по-разному. Здесь мы имеем в виду VPN, как в: клиент будет пересылать весь свой трафик через зашифрованный туннель на сервер.
