@@ -416,16 +416,16 @@ function uninstallWg() {
 }
 
 function manageMenu() {
-	echo "Добро пожаловать в установку WireGuard-сервера!"
-	echo "Репозиторий git доступен по адресу: https://github.com/Romanoidz/wireguard-install"
+	echo "{BOLD}Добро пожаловать в установку WireGuard-сервера!{NC}"
+	echo "{BOLD}Репозиторий git доступен по адресу: https://github.com/Romanoidz/wireguard-install{NC}"
 	echo ""
-	echo "Похоже WireGuard уже установлен."
+	echo "{BOLD}Похоже WireGuard уже установлен.{NC}"
 	echo ""
-	echo "Что хотите сделать?"
-	echo "   1) Добавить нового пользователя"
-	echo "   2) Отозвать существующего пользователя"
-	echo "   3) Удалить WireGuard"
-	echo "   4) Выйти"
+	echo "{BOLD}Что хотите сделать?{NC}"
+	echo "{BOLD}   1) Добавить нового пользователя{NC}"
+	echo "{BOLD}   2) Отозвать существующего пользователя{NC}"
+	echo "{BOLD}   3) Удалить WireGuard{NC}
+	echo "{BOLD}   4) Выйти{NC}"
 	until [[ ${MENU_OPTION} =~ ^[1-4]$ ]]; do
 		read -rp "Выберите опцию [1-4]: " MENU_OPTION
 	done
