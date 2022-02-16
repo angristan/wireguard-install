@@ -3,31 +3,29 @@
 # Secure WireGuard server installer
 # https://github.com/angristan/wireguard-install
 
-WARN='\033[1;36m'
-BOLD='\033[1;37m'
 RED='\033[0;31m'
 ORANGE='\033[0;33m'
 NC='\033[0m'
 
 function isRoot() {
 	if [ "${EUID}" -ne 0 ]; then
-		echo "{WARN}Вам нужно запустить этот скрипт от имени root-пользователя{NC}"
+		echo "Вам нужно запустить этот скрипт от имени root-пользователя"
 		exit 1
 	fi
 }
 
 function checkVirt() {
 	if [ "$(systemd-detect-virt)" == "openvz" ]; then
-		echo "{WARN}OpenVZ не поддерживается{NC}"
+		echo "OpenVZ не поддерживается"
 		exit 1
 	fi
 
 	if [ "$(systemd-detect-virt)" == "lxc" ]; then
-		echo "{BOLD}LXC не поддерживается (пока).{NC}"
-		echo "{BOLD}Технически WireGuard может работать в контейнере LXC,{NC}"
-		echo "{BOLD}но модуль ядра должен быть установлен на хосте,{NC}"
-		echo "{BOLD}контейнер должен быть запущен с некоторыми определенными параметрами{NC}"
-		echo "{BOLD}и только инструменты должны быть установлены в контейнер.{NC}"
+		echo "LXC не поддерживается (пока)."
+		echo "Технически WireGuard может работать в контейнере LXC,"
+		echo "но модуль ядра должен быть установлен на хосте,"
+		echo "контейнер должен быть запущен с некоторыми определенными параметрами"
+		echo "и только инструменты должны быть установлены в контейнер."
 		exit 1
 	fi
 }
@@ -56,7 +54,7 @@ function checkOS() {
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
 	else
-		echo "{BOLD}Похоже, вы не запускаете этот установщик в системе Debian, Ubuntu, Fedora, CentOS, Oracle или Arch Linux{NC}"
+		echo "Похоже, вы не запускаете этот установщик в системе Debian, Ubuntu, Fedora, CentOS, Oracle или Arch Linux"
 		exit 1
 	fi
 }
@@ -68,11 +66,11 @@ function initialCheck() {
 }
 
 function installQuestions() {
-	echo "{BOLD}Добро пожаловать в WireGuard installer!{NC}"
-	echo "{BOLD}Репозиторий git доступен по адресу: https://github.com/Romanoidz/wireguard-install{NC}"
+	echo "Добро пожаловать в WireGuard installer!"
+	echo "Репозиторий git доступен по адресу: https://github.com/Romanoidz/wireguard-install"
 	echo ""
-	echo "{BOLD}Мне нужно задать вам несколько вопросов, прежде чем приступить к настройке.{NC}"
-	echo "{BOLD}Вы можете оставить параметры по умолчанию и просто нажать Enter, если они вас устраивают.{NC}"
+	echo "Мне нужно задать вам несколько вопросов, прежде чем приступить к настройке."
+	echo "Вы можете оставить параметры по умолчанию и просто нажать Enter, если они вас устраивают."
 	echo ""
 
 	# Detect public IPv4 or IPv6 address and pre-fill for the user
@@ -81,7 +79,7 @@ function installQuestions() {
 		# Detect public IPv6 address
 		SERVER_PUB_IP=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | head -1)
 	fi
-	read -rp "{BOLD}Публичный адрес IPv4 или IPv6: {NC}" -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
+	read -rp "Публичный адрес IPv4 или IPv6: " -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
 
 	# Detect public interface and pre-fill for the user
 	SERVER_NIC="$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)"
