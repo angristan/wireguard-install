@@ -3,29 +3,31 @@
 # Secure WireGuard server installer
 # https://github.com/angristan/wireguard-install
 
+WARN='\033[1;35m'
+BOLD='\033[1;32m'
 RED='\033[0;31m'
 ORANGE='\033[0;33m'
 NC='\033[0m'
 
 function isRoot() {
 	if [ "${EUID}" -ne 0 ]; then
-		echo "Вам нужно запустить этот скрипт от имени root-пользователя"
+		echo -e "${WARN}Вам нужно запустить этот скрипт от имени root-пользователя${NC}"
 		exit 1
 	fi
 }
 
 function checkVirt() {
 	if [ "$(systemd-detect-virt)" == "openvz" ]; then
-		echo "OpenVZ не поддерживается"
+		echo -e "${WARN}OpenVZ не поддерживается${NC}"
 		exit 1
 	fi
 
 	if [ "$(systemd-detect-virt)" == "lxc" ]; then
-		echo "LXC не поддерживается (пока)."
-		echo "Технически WireGuard может работать в контейнере LXC,"
-		echo "но модуль ядра должен быть установлен на хосте,"
-		echo "контейнер должен быть запущен с некоторыми определенными параметрами"
-		echo "и только инструменты должны быть установлены в контейнер."
+		echo -e "${WARN}LXC не поддерживается (пока).${NC}"
+		echo -e "${WARN}Технически WireGuard может работать в контейнере LXC,${NC}"
+		echo -e "${WARN}но модуль ядра должен быть установлен на хосте,${NC}"
+		echo -e "${WARN}контейнер должен быть запущен с некоторыми определенными параметрами${NC}"
+		echo -e "${WARN}и только инструменты должны быть установлены в контейнер.${NC}"
 		exit 1
 	fi
 }
@@ -34,13 +36,13 @@ function checkOS() {
 	# Проверка операционной системы
 	if [[ -e /etc/debian_version ]]; then
 		source /etc/os-release
-		OS="${ID}" # debian or ubuntu
+		OS="${ID}" # debian или ubuntu
 		if [[ ${ID} == "debian" || ${ID} == "raspbian" ]]; then
 			if [[ ${VERSION_ID} -lt 10 ]]; then
-				echo "Ваша версия Debian (${VERSION_ID}) не поддерживается. Пожалуйста, используйте Debian 10 Buster или более позднюю версию"
+				echo -e "${WARN}Ваша версия Debian (${VERSION_ID}) не поддерживается. Пожалуйста, используйте Debian 10 Buster или более позднюю версию${NC}"
 				exit 1
 			fi
-			OS=debian # overwrite if raspbian
+			OS=debian # перезаписать, если raspbian
 		fi
 	elif [[ -e /etc/fedora-release ]]; then
 		source /etc/os-release
@@ -54,7 +56,7 @@ function checkOS() {
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
 	else
-		echo "Похоже, вы не запускаете этот установщик в системе Debian, Ubuntu, Fedora, CentOS, Oracle или Arch Linux"
+		echo -e "${WARN}Похоже, вы не запускаете этот установщик в системе Debian, Ubuntu, Fedora, CentOS, Oracle или Arch Linux${NC}"
 		exit 1
 	fi
 }
@@ -66,11 +68,11 @@ function initialCheck() {
 }
 
 function installQuestions() {
-	echo "Добро пожаловать в WireGuard installer!"
-	echo "Репозиторий git доступен по адресу: https://github.com/Romanoidz/wireguard-install"
+	echo -e "${BOLD}Добро пожаловать в WireGuard installer!${NC}"
+	echo -e "${BOLD}Репозиторий git доступен по адресу: https://github.com/Romanoidz/wireguard-install ${NC}"
 	echo ""
-	echo "Мне нужно задать вам несколько вопросов, прежде чем приступить к настройке."
-	echo "Вы можете оставить параметры по умолчанию и просто нажать Enter, если они вас устраивают."
+	echo -e "${BOLD}Мне нужно задать вам несколько вопросов, прежде чем приступить к настройке.${NC}"
+	echo -e "${BOLD}Вы можете оставить параметры по умолчанию и просто нажать Enter, если они вас устраивают.${NC}"
 	echo ""
 
 	# Detect public IPv4 or IPv6 address and pre-fill for the user
@@ -99,13 +101,13 @@ function installQuestions() {
 		read -rp "Адрес сервера WireGuard IPv6: " -e -i fd42:42:42::1 SERVER_WG_IPV6
 	done
 
-	# Generate random number within private ports range
+	# Генерировать случайное число в пределах диапазона частных портов
 	RANDOM_PORT=$(shuf -i49152-65535 -n1)
 	until [[ ${SERVER_PORT} =~ ^[0-9]+$ ]] && [ "${SERVER_PORT}" -ge 1 ] && [ "${SERVER_PORT}" -le 65535 ]; do
 		read -rp "Порт сервера WireGuard [1-65535]: " -e -i "${RANDOM_PORT}" SERVER_PORT
 	done
 
-	# Yandex DNS by default
+	# По умолчанию Яндекс DNS серверы 
 	until [[ ${CLIENT_DNS_1} =~ ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
 		read -rp "1-й DNS-сервер, используемый для клиентов: " -e -i 77.88.8.8 CLIENT_DNS_1
 	done
@@ -117,16 +119,16 @@ function installQuestions() {
 	done
 
 	echo ""
-	echo "Необходимые данные получены. Теперь можно настроить ваш сервер WireGuard."
-	echo "Настроить и создать Клиента можно в конце установки."
-	read -n1 -r -p "Нажмите любую клавишу, чтобы продолжить..."
+	echo -e "${BOLD}Необходимые данные получены. Теперь можно настроить ваш сервер WireGuard.${NC}"
+	echo -e "${BOLD}Настроить и создать Клиента можно в конце установки.${NC}"
+	read -n1 -r -p -e "${BOLD}Нажмите любую клавишу, чтобы продолжить...${NC}"
 }
 
 function installWireGuard() {
-	# Run setup questions first
+	# Сначала выполните вопросы по настройке
 	installQuestions
 
-	# Install WireGuard tools and module
+	# Установите инструменты и модуль для Wireguard
 	if [[ ${OS} == 'ubuntu' ]] || [[ ${OS} == 'debian' && ${VERSION_ID} -gt 10 ]]; then
 		apt-get update
 		apt-get install -y wireguard iptables resolvconf qrencode
@@ -161,7 +163,7 @@ function installWireGuard() {
 		pacman -S --needed --noconfirm wireguard-tools qrencode
 	fi
 
-	# Make sure the directory exists (this does not seem the be the case on fedora)
+	# Убедитесь, что каталог существует (похоже, это не относится к fedora)
 	mkdir /etc/wireguard >/dev/null 2>&1
 
 	chmod 600 -R /etc/wireguard/
@@ -169,7 +171,7 @@ function installWireGuard() {
 	SERVER_PRIV_KEY=$(wg genkey)
 	SERVER_PUB_KEY=$(echo "${SERVER_PRIV_KEY}" | wg pubkey)
 
-	# Save WireGuard settings
+	# Сохранение настроек WireGuard
 	echo "SERVER_PUB_IP=${SERVER_PUB_IP}
 SERVER_PUB_NIC=${SERVER_PUB_NIC}
 SERVER_WG_NIC=${SERVER_WG_NIC}
@@ -181,7 +183,7 @@ SERVER_PUB_KEY=${SERVER_PUB_KEY}
 CLIENT_DNS_1=${CLIENT_DNS_1}
 CLIENT_DNS_2=${CLIENT_DNS_2}" >/etc/wireguard/params
 
-	# Add server interface
+	# Добавить серверный интерфейс
 	echo "[Interface]
 Address = ${SERVER_WG_IPV4}/24,${SERVER_WG_IPV6}/64
 ListenPort = ${SERVER_PORT}
@@ -197,7 +199,7 @@ PostDown = firewall-cmd --remove-port ${SERVER_PORT}/udp && firewall-cmd --remov
 PostDown = iptables -D FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEPT; iptables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT; iptables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE; ip6tables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT; ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
 	fi
 
-	# Enable routing on the server
+	# Включить маршрутизацию на сервере
 	echo "net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 
@@ -207,13 +209,13 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 	systemctl enable "wg-quick@${SERVER_WG_NIC}"
 
 	newClient
-	echo "Если вы хотите добавить больше клиентов, вам просто нужно запустить этот скрипт в еще раз!"
+	echo -e "${BOLD}Если вы хотите добавить больше клиентов, вам просто нужно запустить этот скрипт в еще раз!${NC}"
 
-	# Check if WireGuard is running
+	# Проверьте, работает ли WireGuard
 	systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
 	WG_RUNNING=$?
 
-	# WireGuard might not work if we updated the kernel. Tell the user to reboot
+	# WireGuard может не работать, если мы обновим ядро. Попросите пользователя перезагрузиться
 	if [[ ${WG_RUNNING} -ne 0 ]]; then
 		echo -e "\n${RED}ПРЕДУПРЕЖДЕНИЕ: WireGuard, похоже, не работает.${NC}"
 		echo -e "${ORANGE}Вы можете проверить, работает ли WireGuard: systemctl status wg-quick@${SERVER_WG_NIC}${NC}"
@@ -225,8 +227,8 @@ function newClient() {
 	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
 
 	echo ""
-	echo "Введите имя клиента."
-	echo "Имя должно состоять из буквенно-цифровых символов. Оно также может содержать подчеркивание или тире и не может превышать 15 символов."
+	echo -e "${BOLD}Введите имя клиента.${NC}"
+	echo -e "${WARN}Имя должно состоять из буквенно-цифровых символов. Оно также может содержать подчеркивание или тире и не может превышать 15 символов.${NC}"
 
 	until [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ && ${CLIENT_EXISTS} == '0' && ${#CLIENT_NAME} -lt 16 ]]; do
 		read -rp "Имя клиента: " -e CLIENT_NAME
@@ -234,7 +236,7 @@ function newClient() {
 
 		if [[ ${CLIENT_EXISTS} == '1' ]]; then
 			echo ""
-			echo "Клиент с указанным именем уже создан, пожалуйста, выберите другое имя."
+			echo -e "${ORANGE}Клиент с указанным именем уже создан, пожалуйста, выберите другое имя.${NC}"
 			echo ""
 		fi
 	done
@@ -248,7 +250,7 @@ function newClient() {
 
 	if [[ ${DOT_EXISTS} == '1' ]]; then
 		echo ""
-		echo "Настроенная подсеть поддерживает только 253 клиента."
+		echo -e "${ORANGE}Настроенная подсеть поддерживает только 253 клиента.${NC}"
 		exit 1
 	fi
 
@@ -260,7 +262,7 @@ function newClient() {
 
 		if [[ ${IPV4_EXISTS} == '1' ]]; then
 			echo ""
-			echo "Клиент с указанным IPv4 уже создан, пожалуйста, выберите другой IPv4."
+			echo -e "${ORANGE}Клиент с указанным IPv4 уже создан, пожалуйста, выберите другой IPv4.${NC}"
 			echo ""
 		fi
 	done
@@ -273,34 +275,34 @@ function newClient() {
 
 		if [[ ${IPV6_EXISTS} == '1' ]]; then
 			echo ""
-			echo "Клиент с указанным IPv6 уже создан, пожалуйста, выберите другой IPv6."
+			echo -e "${ORANGE}Клиент с указанным IPv6 уже создан, пожалуйста, выберите другой IPv6.${NC}"
 			echo ""
 		fi
 	done
 
-	# Generate key pair for the client
+	# Создайте пару ключей для клиента
 	CLIENT_PRIV_KEY=$(wg genkey)
 	CLIENT_PUB_KEY=$(echo "${CLIENT_PRIV_KEY}" | wg pubkey)
 	CLIENT_PRE_SHARED_KEY=$(wg genpsk)
 
-	# Home directory of the user, where the client configuration will be written
+	# Домашний каталог пользователя, в котором будет записана конфигурация клиента
 	if [ -e "/home/${CLIENT_NAME}" ]; then
-		# if $1 is a user name
+		# если $1 - это имя пользователя
 		HOME_DIR="/home/${CLIENT_NAME}"
 	elif [ "${SUDO_USER}" ]; then
-		# if not, use SUDO_USER
+		# если нет, используйте SUDO_USER
 		if [ "${SUDO_USER}" == "root" ]; then
-			# If running sudo as root
+			# При запуске sudo от имени root
 			HOME_DIR="/root"
 		else
 			HOME_DIR="/home/${SUDO_USER}"
 		fi
 	else
-		# if not SUDO_USER, use /root
+		# если не SUDO_USER, используйте /root
 		HOME_DIR="/root"
 	fi
 
-	# Create client file and add the server as a peer
+	# Создайте клиентский файл и добавьте сервер в качестве однорангового узла
 	echo "[Interface]
 PrivateKey = ${CLIENT_PRIV_KEY}
 Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
@@ -312,7 +314,7 @@ PresharedKey = ${CLIENT_PRE_SHARED_KEY}
 Endpoint = ${ENDPOINT}
 AllowedIPs = 0.0.0.0/0,::/0" >>"${HOME_DIR}/${SERVER_WG_NIC}-${SERVER_PUB_IP}-client-${CLIENT_NAME}.conf"
 
-	# Add the client as a peer to the server
+	# Добавьте клиента в качестве однорангового узла к серверу
 	echo -e "\n### Client ${CLIENT_NAME}
 [Peer]
 PublicKey = ${CLIENT_PUB_KEY}
@@ -321,7 +323,7 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 
 	wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
 
-	echo -e "\nВот файл конфигурации вашего клиента в виде QR-кода:"
+	echo -e "${BOLD}\nВот файл конфигурации вашего клиента в виде QR-кода:${NC}"
 
 	qrencode -t ansiutf8 -l L <"${HOME_DIR}/${SERVER_WG_NIC}-${SERVER_PUB_IP}-client-${CLIENT_NAME}.conf"
 
@@ -332,12 +334,12 @@ function revokeClient() {
 	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 	if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
 		echo ""
-		echo "У вас нет существующих клиентов!"
+		echo -e "${ORANGE}У вас нет существующих клиентов!${NC}"
 		exit 1
 	fi
 
 	echo ""
-	echo "Выберите существующего клиента, которого вы хотите отозвать"
+	echo -e "${BOLD}Выберите существующего клиента, которого вы хотите отозвать${NC}"
 	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
 	until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
 		if [[ ${CLIENT_NUMBER} == '1' ]]; then
@@ -347,16 +349,16 @@ function revokeClient() {
 		fi
 	done
 
-	# match the selected number to a client name
+	# сопоставьте выбранный номер с именем клиента
 	CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
 
-	# remove [Peer] block matching $CLIENT_NAME
+	# удалить [Peer] блок, соответствующий $CLIENT_NAME
 	sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/d" "/etc/wireguard/${SERVER_WG_NIC}.conf"
 
-	# remove generated client file
+	# удалить сгенерированный файл клиента
 	rm -f "${HOME}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 
-	# restart wireguard to apply changes
+	# перезапустите wireguard, чтобы применить изменения
 	wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
 }
 
@@ -393,37 +395,37 @@ function uninstallWg() {
 		rm -rf /etc/wireguard
 		rm -f /etc/sysctl.d/wg.conf
 
-		# Reload sysctl
+		# Перезагрузить sysctl
 		sysctl --system
 
-		# Check if WireGuard is running
+		# Проверьте, работает ли WireGuard
 		systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
 		WG_RUNNING=$?
 
 		if [[ ${WG_RUNNING} -eq 0 ]]; then
-			echo "WireGuard не удалась удалить должным образом."
+			echo -e "${ORANGE}WireGuard не удалась удалить должным образом.${NC}"
 			exit 1
 		else
-			echo "WireGuard успешно удален"
+			echo -e "${BOLD}WireGuard успешно удален.${NC}"
 			exit 0
 		fi
 	else
 		echo ""
-		echo "Удаление прервано!"
+		echo -e "${ORANGE}Удаление прервано!${NC}"
 	fi
 }
 
 function manageMenu() {
-	echo "Добро пожаловать в установку WireGuard-сервера!"
-	echo "Репозиторий git доступен по адресу: https://github.com/Romanoidz/wireguard-install"
+	echo -e "${BOLD}Добро пожаловать в установку WireGuard-сервера!${NC}" 
+	echo -e "${BOLD}Репозиторий git доступен по адресу: https://github.com/Romanoidz/wireguard-install ${NC}"
 	echo ""
-	echo "Похоже WireGuard уже установлен."
+	echo -e "${BOLD}Похоже WireGuard уже установлен.${NC}"
 	echo ""
-	echo "Что хотите сделать?"
-	echo "   1) Добавить нового пользователя"
-	echo "   2) Отозвать существующего пользователя"
-	echo "   3) Удалить WireGuard"
-	echo "   4) Выйти"
+	echo -e "${BOLD}Что хотите сделать?${NC}" 
+	echo -e "${BOLD}   1) Добавить нового пользователя${NC}" 
+	echo -e "${BOLD}   2) Отозвать существующего пользователя${NC}" 
+	echo -e "${BOLD}   3) Удалить WireGuard${NC}" 
+	echo -e "${BOLD}   4) Выйти${NC}" 
 	until [[ ${MENU_OPTION} =~ ^[1-4]$ ]]; do
 		read -rp "Выберите опцию [1-4]: " MENU_OPTION
 	done
@@ -443,10 +445,10 @@ function manageMenu() {
 	esac
 }
 
-# Check for root, virt, OS...
+# Проверьте наличие root, virt, ОС...
 initialCheck
 
-# Check if WireGuard is already installed and load params
+# Проверьте, установлен ли WireGuard, и загрузите параметры
 if [[ -e /etc/wireguard/params ]]; then
 	source /etc/wireguard/params
 	manageMenu
