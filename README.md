@@ -1,8 +1,8 @@
 # WireGuard installer
 
-![Lint](https://github.com/angristan/wireguard-install/workflows/Lint/badge.svg)
-![visitors](https://visitor-badge.glitch.me/badge?page_id=angristan.wireguard-install)
-[![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/angristan)
+![Lint](https://github.com/Romanoidz/wireguard-install/workflows/Lint/badge.svg)
+![visitors](https://visitor-badge.glitch.me/badge?page_id=Romanoidz.wireguard-install)
+[![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/Romanoidz)
 
 **Этот скрипт представляет собой сценарий bash, целью которого является настройка [WireGuard](https://www.wireguard.com /) VPN на сервере Linux, как можно проще!**
 
@@ -29,15 +29,21 @@ WireGuard не подходит для вашей среды? Попробуйт
 
 ```bash
 curl -O https://raw.githubusercontent.com/Romanoidz/wireguard-install/master/wireguard-install.sh
+```
+```bash
 chmod +x wireguard-install.sh
+```
+```bash
 ./wireguard-install.sh
 ```
 или 
 ```bash
 wget https://raw.githubusercontent.com/Romanoidz/wireguard-install/master/wireguard-install.sh
+```
+```bash
 bash wireguard-install.sh
 ```
 
-Он установит WireGuard (модуль ядра и инструменты) на сервер, настроит его, создаст службу systemd, файл конфигурации клиента и QR-код для быстрой настройки с мобильных устройств.
+Скрипт установит WireGuard (модуль ядра и инструменты) на сервер, настроит его, создаст службу systemd, файл конфигурации клиента и QR-код для быстрой настройки с мобильных устройств.
 
 Запустите скрипт еще раз, чтобы добавить или удалить клиентов!
