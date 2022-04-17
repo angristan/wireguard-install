@@ -55,7 +55,7 @@ To enable the connection run `sudo wg-quick up [Interface name]`, like `sudo wg-
 
 * Connect: `systemctl start wg-quick@wg0.service`
 
-* Verify your public IP has changed to the server's IP, e.g.: `curl https://ident.me`
+* Verify your public IP has changed to the server's IP, e.g.: `curl ipv4.icanhazip.com ; curl ipv6.icanhazip.com`
 
 ### iOS
 
