@@ -312,7 +312,8 @@ DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
 PublicKey = ${SERVER_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
 Endpoint = ${ENDPOINT}
-AllowedIPs = 0.0.0.0/0,::/0" >>"${HOME_DIR}/${SERVER_WG_NIC}-${SERVER_PUB_IP}-client-${CLIENT_NAME}.conf"
+AllowedIPs = 0.0.0.1/5, 8.0.0.0/7, 11.0.0.0/8, 12.0.0.0/6, 16.0.0.0/4, 32.0.0.0/3, 65.0.0.0/2, 128.0.0.0/1
+" >>"${HOME_DIR}/${SERVER_WG_NIC}-${SERVER_PUB_IP}-client-${CLIENT_NAME}.conf"
 
 	# Добавьте клиента в качестве однорангового узла к серверу
 	echo -e "\n### Client ${CLIENT_NAME}
