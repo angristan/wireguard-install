@@ -23,6 +23,7 @@ Supported distributions:
 - CentOS
 - Arch Linux
 - Oracle Linux
+- Suse Linux
 
 ## Usage
 
