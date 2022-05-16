@@ -21,6 +21,7 @@ Supported distributions:
 - Debian >= 10
 - Fedora
 - CentOS
+- AlmaLinux
 - Arch Linux
 - Oracle Linux
 
