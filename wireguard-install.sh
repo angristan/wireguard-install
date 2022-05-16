@@ -70,7 +70,7 @@ function installQuestions() {
 	echo "The git repository is available at: https://github.com/angristan/wireguard-install"
 	echo ""
 	echo "I need to ask you a few questions before starting the setup."
-	echo "You can leave the default options and just press enter if you are ok with them."
+	echo "You can keep the default options and just press enter if you are ok with them."
 	echo ""
 
 	# Detect public IPv4 or IPv6 address and pre-fill for the user
@@ -92,17 +92,17 @@ function installQuestions() {
 	done
 
 	until [[ ${SERVER_WG_IPV4} =~ ^([0-9]{1,3}\.){3} ]]; do
-		read -rp "Server's WireGuard IPv4: " -e -i 10.66.66.1 SERVER_WG_IPV4
+		read -rp "Server WireGuard IPv4: " -e -i 10.66.66.1 SERVER_WG_IPV4
 	done
 
 	until [[ ${SERVER_WG_IPV6} =~ ^([a-f0-9]{1,4}:){3,4}: ]]; do
-		read -rp "Server's WireGuard IPv6: " -e -i fd42:42:42::1 SERVER_WG_IPV6
+		read -rp "Server WireGuard IPv6: " -e -i fd42:42:42::1 SERVER_WG_IPV6
 	done
 
 	# Generate random number within private ports range
 	RANDOM_PORT=$(shuf -i49152-65535 -n1)
 	until [[ ${SERVER_PORT} =~ ^[0-9]+$ ]] && [ "${SERVER_PORT}" -ge 1 ] && [ "${SERVER_PORT}" -le 65535 ]; do
-		read -rp "Server's WireGuard port [1-65535]: " -e -i "${RANDOM_PORT}" SERVER_PORT
+		read -rp "Server WireGuard port [1-65535]: " -e -i "${RANDOM_PORT}" SERVER_PORT
 	done
 
 	# Adguard DNS by default
@@ -225,8 +225,9 @@ function newClient() {
 	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
 
 	echo ""
-	echo "Tell me a name for the client."
-	echo "The name must consist of alphanumeric character. It may also include an underscore or a dash and can't exceed 15 chars."
+	echo "Client configuration"
+	echo ""
+	echo "The client name must consist of alphanumeric character(s). It may also include underscores or dashes and can't exceed 15 chars."
 
 	until [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ && ${CLIENT_EXISTS} == '0' && ${#CLIENT_NAME} -lt 16 ]]; do
 		read -rp "Client name: " -e CLIENT_NAME
@@ -254,7 +255,7 @@ function newClient() {
 
 	BASE_IP=$(echo "$SERVER_WG_IPV4" | awk -F '.' '{ print $1"."$2"."$3 }')
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
-		read -rp "Client's WireGuard IPv4: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
+		read -rp "Client WireGuard IPv4: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV4="${BASE_IP}.${DOT_IP}"
 		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4/24" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
@@ -267,7 +268,7 @@ function newClient() {
 
 	BASE_IP=$(echo "$SERVER_WG_IPV6" | awk -F '::' '{ print $1 }')
 	until [[ ${IPV6_EXISTS} == '0' ]]; do
-		read -rp "Client's WireGuard IPv6: ${BASE_IP}::" -e -i "${DOT_IP}" DOT_IP
+		read -rp "Client WireGuard IPv6: ${BASE_IP}::" -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV6="${BASE_IP}::${DOT_IP}"
 		IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}/64" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
