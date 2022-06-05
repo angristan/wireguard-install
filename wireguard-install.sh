@@ -150,7 +150,10 @@ function installWireGuard() {
 		dnf install -y wireguard-tools iptables qrencode
 	elif [[ ${OS} == 'almalinux' ]]; then
 		dnf -y install epel-release elrepo-release
-		dnf -y install kmod-wireguard wireguard-tools iptables qrencode
+		dnf -y install wireguard-tools iptables qrencode
+		if [[ ${VERSION_ID} == 8* ]]; then
+			dnf -y install kmod-wireguard
+		fi
 	elif [[ ${OS} == 'centos' ]]; then
 		yum -y install epel-release elrepo-release
 		if [[ ${VERSION_ID} -eq 7 ]]; then
@@ -387,7 +390,10 @@ function uninstallWg() {
 			fi
 			dnf autoremove -y
 		elif [[ ${OS} == 'almalinux' ]]; then
-			dnf -y remove kmod-wireguard wireguard-tools qrencode
+			dnf -y remove wireguard-tools qrencode
+			if [[ ${VERSION_ID} == 8* ]]; then
+				dnf -y remove kmod-wireguard
+			fi
 			dnf -y autoremove
 		elif [[ ${OS} == 'centos' ]]; then
 			yum -y remove kmod-wireguard wireguard-tools qrencode
