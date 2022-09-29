@@ -396,6 +396,9 @@ function uninstallWg() {
 		# Reload sysctl
 		sysctl --system
 
+                # delete interface
+		ip link delete dev ${SERVER_WG_NIC}
+		
 		# Check if WireGuard is running
 		systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
 		WG_RUNNING=$?
