@@ -362,7 +362,7 @@ function revokeClient() {
 
 function uninstallWg() {
 	echo ""
-	read -rp "Do you really want to remove WireGuard? [y/n]: " -e REMOVE 
+	read -rp "Do you really want to remove WireGuard? [y/n]: " -e REMOVE
 	REMOVE=${REMOVE:-n}
 	if [[ $REMOVE == 'y' ]]; then
 		checkOS
