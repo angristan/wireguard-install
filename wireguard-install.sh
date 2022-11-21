@@ -42,6 +42,9 @@ function checkOS() {
 			fi
 			OS=debian # overwrite if raspbian
 		fi
+	elif [[ -e /etc/almalinux-release ]]; then
+		source /etc/os-release
+		OS=almalinux
 	elif [[ -e /etc/fedora-release ]]; then
 		source /etc/os-release
 		OS="${ID}"
@@ -54,7 +57,7 @@ function checkOS() {
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
 	else
-		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, Oracle or Arch Linux system"
+		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle or Arch Linux system"
 		exit 1
 	fi
 }
@@ -145,6 +148,12 @@ function installWireGuard() {
 			dnf install -y wireguard-dkms
 		fi
 		dnf install -y wireguard-tools iptables qrencode
+	elif [[ ${OS} == 'almalinux' ]]; then
+		dnf -y install epel-release elrepo-release
+		dnf -y install wireguard-tools iptables qrencode
+		if [[ ${VERSION_ID} == 8* ]]; then
+			dnf -y install kmod-wireguard
+		fi
 	elif [[ ${OS} == 'centos' ]]; then
 		yum -y install epel-release elrepo-release
 		if [[ ${VERSION_ID} -eq 7 ]]; then
@@ -381,6 +390,12 @@ function uninstallWg() {
 				dnf copr disable -y jdoss/wireguard
 			fi
 			dnf autoremove -y
+		elif [[ ${OS} == 'almalinux' ]]; then
+			dnf -y remove wireguard-tools qrencode
+			if [[ ${VERSION_ID} == 8* ]]; then
+				dnf -y remove kmod-wireguard
+			fi
+			dnf -y autoremove
 		elif [[ ${OS} == 'centos' ]]; then
 			yum -y remove kmod-wireguard wireguard-tools qrencode
 			yum -y autoremove
