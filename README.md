@@ -11,7 +11,7 @@ The server will apply NAT to the client's traffic so it will appear as if the cl
 
 The script supports both IPv4 and IPv6. Please check the [issues](https://github.com/angristan/wireguard-install/issues) for ongoing development, bugs and planned features!
 
-WireGuard does not fit your environment? Check out [openvpn-install](https://github.com/angristan/openvpn-install).
+WireGuard does not fit your environment? Check out [openvpn-install](https://github.com/angristan/wireguard-install).
 
 ## Requirements
 
@@ -47,3 +47,21 @@ I recommend these cheap cloud providers for your VPN server:
 - [Hetzner](https://hetzner.cloud/?ref=ywtlvZsjgeDq): Germany, Finland and United States, IPv6, 20 TB of traffic, starting at €3/month
 - [Digital Ocean](https://goo.gl/qXrNLK): Worldwide locations, IPv6 support, starting at \$4/month
 - [PulseHeberg](https://goo.gl/76yqW5): France, unlimited bandwidth, starting at €3/month
+
+## Contributing
+
+## Discuss changes
+
+Please open an issue before submitting a PR if you want to discuss a change, especially if it's a big one.
+
+### Code formatting
+
+We use [shellcheck](https://github.com/koalaman/shellcheck) and [shfmt](https://github.com/mvdan/sh) to enforce bash styling guidelines and good practices. They are executed for each commit / PR with GitHub Actions, so you can check the configuration [here](https://github.com/angristan/wireguard-install/blob/master/.github/workflows/lint.yml).
+
+## Say thanks
+
+You can [say thanks](https://saythanks.io/to/angristan) if you want!
+
+## Credits & Licence
+
+This project is under the [MIT Licence](https://raw.githubusercontent.com/angristan/wireguard-install/master/LICENSE)
