@@ -284,9 +284,9 @@ function newClient() {
 		read -rp "Client name: " -e CLIENT_NAME
 		CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
-		if [[ ${CLIENT_EXISTS} == '1' ]]; then
+		if [[ ${CLIENT_EXISTS} != 0 ]]; then
 			echo ""
-			echo "A client with the specified name was already created, please choose another name."
+			echo -e "${ORANGE}A client with the specified name was already created, please choose another name.${NC}"
 			echo ""
 		fi
 	done
@@ -308,11 +308,11 @@ function newClient() {
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
 		read -rp "Client WireGuard IPv4: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV4="${BASE_IP}.${DOT_IP}"
-		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4/24" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4/32" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
-		if [[ ${IPV4_EXISTS} == '1' ]]; then
+		if [[ ${IPV4_EXISTS} != 0 ]]; then
 			echo ""
-			echo "A client with the specified IPv4 was already created, please choose another IPv4."
+			echo -e "${ORANGE}A client with the specified IPv4 was already created, please choose another IPv4.${NC}"
 			echo ""
 		fi
 	done
@@ -321,11 +321,11 @@ function newClient() {
 	until [[ ${IPV6_EXISTS} == '0' ]]; do
 		read -rp "Client WireGuard IPv6: ${BASE_IP}::" -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV6="${BASE_IP}::${DOT_IP}"
-		IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}/64" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+		IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}/128" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
-		if [[ ${IPV6_EXISTS} == '1' ]]; then
+		if [[ ${IPV6_EXISTS} != 0 ]]; then
 			echo ""
-			echo "A client with the specified IPv6 was already created, please choose another IPv6."
+			echo -e "${ORANGE}A client with the specified IPv6 was already created, please choose another IPv6.${NC}"
 			echo ""
 		fi
 	done
