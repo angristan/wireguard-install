@@ -65,3 +65,7 @@ You can [say thanks](https://saythanks.io/to/angristan) if you want!
 ## Credits & Licence
 
 This project is under the [MIT Licence](https://raw.githubusercontent.com/angristan/wireguard-install/master/LICENSE)
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=angristan/wireguard-install&type=Date)](https://star-history.com/#angristan/wireguard-install&Date)
