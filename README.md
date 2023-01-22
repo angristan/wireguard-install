@@ -17,13 +17,14 @@ WireGuard does not fit your environment? Check out [openvpn-install](https://git
 
 Supported distributions:
 
-- Ubuntu >= 16.04
-- Debian >= 10
-- Fedora
-- CentOS
-- AlmaLinux
+- AlmaLinux >= 8
 - Arch Linux
+- CentOS Stream >= 8
+- Debian >= 10
+- Fedora >= 32
 - Oracle Linux
+- Rocky Linux >= 8
+- Ubuntu >= 18.04
 
 ## Usage
 

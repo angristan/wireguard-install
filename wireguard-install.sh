@@ -31,26 +31,24 @@ function checkVirt() {
 }
 
 function checkOS() {
-	# Check OS version
-	if [[ -e /etc/debian_version ]]; then
-		source /etc/os-release
-		OS="${ID}" # debian or ubuntu
-		if [[ ${ID} == "debian" || ${ID} == "raspbian" ]]; then
-			if [[ ${VERSION_ID} -lt 10 ]]; then
-				echo "Your version of Debian (${VERSION_ID}) is not supported. Please use Debian 10 Buster or later"
-				exit 1
-			fi
-			OS=debian # overwrite if raspbian
+	source /etc/os-release
+	OS="${ID}"
+	if [[ ${OS} == "debian" || ${OS} == "raspbian" ]]; then
+		if [[ ${VERSION_ID} -lt 10 ]]; then
+			echo "Your version of Debian (${VERSION_ID}) is not supported. Please use Debian 10 Buster or later"
+			exit 1
 		fi
-	elif [[ -e /etc/almalinux-release ]]; then
-		source /etc/os-release
-		OS=almalinux
-	elif [[ -e /etc/fedora-release ]]; then
-		source /etc/os-release
-		OS="${ID}"
-	elif [[ -e /etc/centos-release ]]; then
-		source /etc/os-release
-		OS=centos
+		OS=debian # overwrite if raspbian
+	elif [[ ${OS} == "fedora" ]]; then
+		if [[ ${VERSION_ID} -lt 32 ]]; then
+			echo "Your version of Fedora (${VERSION_ID}) is not supported. Please use Fedora 32 or later"
+			exit 1
+		fi
+	elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
+		if [[ ${VERSION_ID} == 7* ]]; then
+			echo "Your version of CentOS (${VERSION_ID}) is not supported. Please use CentOS 8 or later"
+			exit 1
+		fi
 	elif [[ -e /etc/oracle-release ]]; then
 		source /etc/os-release
 		OS=oracle
@@ -176,18 +174,13 @@ function installWireGuard() {
 			dnf install -y wireguard-dkms
 		fi
 		dnf install -y wireguard-tools iptables qrencode
-	elif [[ ${OS} == 'almalinux' ]]; then
-		dnf -y install epel-release elrepo-release
-		dnf -y install wireguard-tools iptables qrencode
+	elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
 		if [[ ${VERSION_ID} == 8* ]]; then
-			dnf -y install kmod-wireguard
+			yum install -y epel-release elrepo-release
+			yum install -y kmod-wireguard
+			yum install -y qrencode # not available on release 9
 		fi
-	elif [[ ${OS} == 'centos' ]]; then
-		yum -y install epel-release elrepo-release
-		if [[ ${VERSION_ID} -eq 7 ]]; then
-			yum -y install yum-plugin-elrepo
-		fi
-		yum -y install kmod-wireguard wireguard-tools iptables qrencode
+		yum install -y wireguard-tools iptables
 	elif [[ ${OS} == 'oracle' ]]; then
 		dnf install -y oraclelinux-developer-release-el8
 		dnf config-manager --disable -y ol8_developer
@@ -354,9 +347,11 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 
 	wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
 
-	echo -e "\nHere is your client config file as a QR Code:"
-
-	qrencode -t ansiutf8 -l L <"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+	# Generate QR code if qrencode is installed
+	if command -v qrencode &>/dev/null; then
+		echo -e "\nHere is your client config file as a QR Code:"
+		qrencode -t ansiutf8 -l L <"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+	fi
 
 	echo "It is also available in ${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 }
