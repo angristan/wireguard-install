@@ -118,7 +118,7 @@ function installQuestions() {
 	
 	#Allowed IPs
 	until [[ ${ALLOWED_IPS} =~ ^.+$ ]]; do
-		read -rp "Allowed IPs list: " -e -i '0.0.0.0/0, ::/0, 128.0.0.0/1' ALLOWED_IPS
+		read -rp "Allowed IPs list: " -e -i '0.0.0.0/1, 128.0.0.0/1, ::/0,' ALLOWED_IPS
  		if [[ ${ALLOWED_IPS} == "" ]]; then
 			ALLOWED_IPS="0.0.0.0/0, ::/0, 128.0.0.0/1"
 		fi
