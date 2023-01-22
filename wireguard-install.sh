@@ -431,28 +431,22 @@ function uninstallWg() {
 		systemctl disable "wg-quick@${SERVER_WG_NIC}"
 
 		if [[ ${OS} == 'ubuntu' ]]; then
-			apt-get autoremove --purge -y wireguard qrencode
+			apt-get remove -y wireguard wireguard-tools qrencode
 		elif [[ ${OS} == 'debian' ]]; then
-			apt-get autoremove --purge -y wireguard qrencode
+			apt-get remove -y wireguard wireguard-tools qrencode
 		elif [[ ${OS} == 'fedora' ]]; then
-			dnf remove -y wireguard-tools qrencode
+			dnf remove -y --noautoremove wireguard-tools qrencode
 			if [[ ${VERSION_ID} -lt 32 ]]; then
-				dnf remove -y wireguard-dkms
+				dnf remove -y --noautoremove wireguard-dkms
 				dnf copr disable -y jdoss/wireguard
 			fi
-			dnf autoremove -y
-		elif [[ ${OS} == 'almalinux' ]]; then
-			dnf -y remove wireguard-tools qrencode
+		elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
+			yum remove -y --noautoremove wireguard-tools
 			if [[ ${VERSION_ID} == 8* ]]; then
-				dnf -y remove kmod-wireguard
+				yum remove --noautoremove kmod-wireguard qrencode
 			fi
-			dnf -y autoremove
-		elif [[ ${OS} == 'centos' ]]; then
-			yum -y remove kmod-wireguard wireguard-tools qrencode
-			yum -y autoremove
 		elif [[ ${OS} == 'oracle' ]]; then
-			yum -y remove wireguard-tools qrencode
-			yum -y autoremove
+			yum remove --noautoremove wireguard-tools qrencode
 		elif [[ ${OS} == 'arch' ]]; then
 			pacman -Rs --noconfirm wireguard-tools qrencode
 		fi
