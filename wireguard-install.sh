@@ -273,6 +273,12 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 }
 
 function newClient() {
+	# If SERVER_PUB_IP is IPv6, add brackets if missing
+	if [[ ${SERVER_PUB_IP} =~ .*:.* ]]; then
+		if [[ ${SERVER_PUB_IP} != *"["* ]] || [[ ${SERVER_PUB_IP} != *"]"* ]]; then
+			SERVER_PUB_IP="[${SERVER_PUB_IP}]"
+		fi
+	fi
 	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
 
 	echo ""
