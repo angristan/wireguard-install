@@ -408,8 +408,8 @@ function revokeClient() {
 
 function uninstallWg() {
 	echo ""
-	echo "WARNING: This will uninstall WireGuard and remove all the configuration files!"
-	echo "Please backup the /etc/wireguard directory if you want to keep your configuration files."
+	echo -e "\n${RED}WARNING: This will uninstall WireGuard and remove all the configuration files!${NC}"
+	echo -e "${ORANGE}Please backup the /etc/wireguard directory if you want to keep your configuration files.\n${NC}"
 	read -rp "Do you really want to remove WireGuard? [y/n]: " -e REMOVE
 	REMOVE=${REMOVE:-n}
 	if [[ $REMOVE == 'y' ]]; then
