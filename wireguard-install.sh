@@ -330,14 +330,13 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 
 function listClients() {
 	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
-	if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
+	if [[ ${NUMBER_OF_CLIENTS} -eq 0 ]]; then
 		echo ""
 		echo "You have no existing clients!"
 		exit 1
 	fi
 
 	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
-
 }
 
 function revokeClient() {
@@ -433,7 +432,7 @@ function manageMenu() {
 	echo ""
 	echo "What do you want to do?"
 	echo "   1) Add a new user"
-    echo "   2) List all users"
+	echo "   2) List all users"
 	echo "   3) Revoke existing user"
 	echo "   4) Uninstall WireGuard"
 	echo "   5) Exit"
@@ -444,7 +443,7 @@ function manageMenu() {
 	1)
 		newClient
 		;;
-    2)
+	2)
 		listClients
 		;;
 	3)
