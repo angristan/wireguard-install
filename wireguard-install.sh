@@ -62,6 +62,34 @@ function checkOS() {
 	fi
 }
 
+function getHomeDirForClient() {
+	local CLIENT_NAME=$1
+
+	if [ -z "${CLIENT_NAME}" ]; then
+		echo "Error: getHomeDirForClient() requires a client name as argument"
+		exit 1
+	fi
+
+	# Home directory of the user, where the client configuration will be written
+	if [ -e "/home/${CLIENT_NAME}" ]; then
+		# if $1 is a user name
+		HOME_DIR="/home/${CLIENT_NAME}"
+	elif [ "${SUDO_USER}" ]; then
+		# if not, use SUDO_USER
+		if [ "${SUDO_USER}" == "root" ]; then
+			# If running sudo as root
+			HOME_DIR="/root"
+		else
+			HOME_DIR="/home/${SUDO_USER}"
+		fi
+	else
+		# if not SUDO_USER, use /root
+		HOME_DIR="/root"
+	fi
+
+	echo "$HOME_DIR"
+}
+
 function initialCheck() {
 	isRoot
 	checkVirt
@@ -303,22 +331,7 @@ function newClient() {
 	CLIENT_PUB_KEY=$(echo "${CLIENT_PRIV_KEY}" | wg pubkey)
 	CLIENT_PRE_SHARED_KEY=$(wg genpsk)
 
-	# Home directory of the user, where the client configuration will be written
-	if [ -e "/home/${CLIENT_NAME}" ]; then
-		# if $1 is a user name
-		HOME_DIR="/home/${CLIENT_NAME}"
-	elif [ "${SUDO_USER}" ]; then
-		# if not, use SUDO_USER
-		if [ "${SUDO_USER}" == "root" ]; then
-			# If running sudo as root
-			HOME_DIR="/root"
-		else
-			HOME_DIR="/home/${SUDO_USER}"
-		fi
-	else
-		# if not SUDO_USER, use /root
-		HOME_DIR="/root"
-	fi
+	HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
 
 	# Create client file and add the server as a peer
 	echo "[Interface]
@@ -385,7 +398,8 @@ function revokeClient() {
 	sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/d" "/etc/wireguard/${SERVER_WG_NIC}.conf"
 
 	# remove generated client file
-	rm -f "${HOME}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+	HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
+	rm -f "${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 
 	# restart wireguard to apply changes
 	wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
