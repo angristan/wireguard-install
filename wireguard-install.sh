@@ -61,8 +61,10 @@ function checkOS() {
 		OS=oracle
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
+	elif [[ -e /etc/os-release ]]; then
+		OS=suse
 	else
-		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle or Arch Linux system"
+		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle, openSUSE or Arch Linux system"
 		exit 1
 	fi
 }
@@ -204,6 +206,9 @@ function installWireGuard() {
 		dnf install -y wireguard-tools qrencode iptables
 	elif [[ ${OS} == 'arch' ]]; then
 		pacman -S --needed --noconfirm wireguard-tools qrencode
+	elif [[ ${OS} == 'suse' ]]; then
+		zypper in wireguard-tools
+		zypper in qrencode
 	fi
 
 	# Make sure the directory exists (this does not seem the be the case on fedora)
