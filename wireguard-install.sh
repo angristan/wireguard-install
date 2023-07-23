@@ -373,6 +373,13 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 
 	wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
 
+	generateQR "${CLIENT_NAME}"
+}
+
+function generateQR() {
+	CLIENT_NAME="${1}"
+	HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
+	
 	# Generate QR code if qrencode is installed
 	if command -v qrencode &>/dev/null; then
 		echo -e "${GREEN}\nHere is your client config file as a QR Code:\n${NC}"
@@ -391,7 +398,43 @@ function listClients() {
 		exit 1
 	fi
 
+	echo ""
+	echo "List of existing client(s):"
 	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -w4 -s ') '
+	
+	echo ""
+	echo "What do you want to do?"
+	echo "   1) Show config file and QR code"
+	echo "   2) Revoke user"
+	echo "   3) Exit"
+	until [[ ${CLIENTS_LIST_MENU_OPTION} =~ ^[1-3]$ ]]; do
+		read -rp "Select an option [1-3]: " CLIENTS_LIST_MENU_OPTION
+	done
+	case "${CLIENTS_LIST_MENU_OPTION}" in
+	1)
+		echo ""
+		echo "Select the existing client you want to show config file and QR code"
+		grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -w4 -s ') '
+		until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
+			if [[ ${CLIENT_NUMBER} == '1' ]]; then
+				read -rp "Select one client [1]: " CLIENT_NUMBER
+			else
+				read -rp "Select one client [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+			fi
+		done
+
+		# match the selected number to a client name
+		CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
+		
+		generateQR "${CLIENT_NAME}"
+		;;
+	2)
+		revokeClient
+		;;
+	3)
+		exit 0
+		;;
+	esac
 }
 
 function revokeClient() {
