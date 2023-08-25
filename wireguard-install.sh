@@ -109,13 +109,9 @@ function installQuestions() {
 	echo "You can keep the default options and just press enter if you are ok with them."
 	echo ""
 
-	# Detect public IPv4 or IPv6 address and pre-fill for the user
-	SERVER_PUB_IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | awk '{print $1}' | head -1)
-	if [[ -z ${SERVER_PUB_IP} ]]; then
-		# Detect public IPv6 address
-		SERVER_PUB_IP=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | head -1)
-	fi
-	read -rp "IPv4 or IPv6 public address: " -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
+	# Get public IPv4 and IPv6 address and pre-fill for the user
+	SERVER_PUB_IPv4=$(curl -4 https://ifconfig.co)
+	SERVER_PUB_IPv6=$(curl -6 https://ifconfig.co)
 
 	# Detect public interface and pre-fill for the user
 	SERVER_NIC="$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)"
@@ -215,7 +211,8 @@ function installWireGuard() {
 	SERVER_PUB_KEY=$(echo "${SERVER_PRIV_KEY}" | wg pubkey)
 
 	# Save WireGuard settings
-	echo "SERVER_PUB_IP=${SERVER_PUB_IP}
+	echo "SERVER_PUB_IPv4=${SERVER_PUB_IPv4}
+SERVER_PUB_IPv6=${SERVER_PUB_IPv6}
 SERVER_PUB_NIC=${SERVER_PUB_NIC}
 SERVER_WG_NIC=${SERVER_WG_NIC}
 SERVER_WG_IPV4=${SERVER_WG_IPV4}
@@ -282,13 +279,15 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 }
 
 function newClient() {
-	# If SERVER_PUB_IP is IPv6, add brackets if missing
-	if [[ ${SERVER_PUB_IP} =~ .*:.* ]]; then
-		if [[ ${SERVER_PUB_IP} != *"["* ]] || [[ ${SERVER_PUB_IP} != *"]"* ]]; then
-			SERVER_PUB_IP="[${SERVER_PUB_IP}]"
-		fi
-	fi
-	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
+  until [[ "${ENDPOINT_TYPE}" == "ipv4" || "${ENDPOINT_TYPE}" == "ipv6" ]]; do
+      read -rp "ENDPOINT_TYPE(only support ipv4 or ipv6 input): " -e -i ipv4 ENDPOINT_TYPE
+  done
+
+	if [[ ${ENDPOINT_TYPE} == "ipv4" ]]; then
+	  ENDPOINT="${SERVER_PUB_IPv4}:${SERVER_PORT}"
+  else
+    ENDPOINT="[${SERVER_PUB_IPv6}]:${SERVER_PORT}"
+  fi
 
 	echo ""
 	echo "Client configuration"
@@ -362,7 +361,8 @@ DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
 PublicKey = ${SERVER_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
 Endpoint = ${ENDPOINT}
-AllowedIPs = ${ALLOWED_IPS}" >"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+AllowedIPs = ${ALLOWED_IPS}
+PersistentKeepalive = 25" >"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 
 	# Add the client as a peer to the server
 	echo -e "\n### Client ${CLIENT_NAME}
