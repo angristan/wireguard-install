@@ -9,7 +9,7 @@ NC='\033[0m'
 
 function isRoot() {
 	if [ "${EUID}" -ne 0 ]; then
-		echo "You need to run this script as root. Use sudo bash wg.sh or just sudo ./wg.sh"
+		echo "You need to run this script as root"
 		exit 1
 	fi
 }
