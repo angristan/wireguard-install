@@ -29,7 +29,7 @@ Download and execute the script. Answer the questions asked by the script and it
 ```bash
 curl -O https://raw.githubusercontent.com/Anatr0p/wireguard-install/master/wg.sh
 chmod +x wg.sh
-./wireguard-install.sh
+./wg.sh
 ```
 
 It will install WireGuard (kernel module and tools) on the server, configure it, create a systemd service and a client configuration file.
