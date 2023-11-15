@@ -409,7 +409,7 @@ PublicKey = ${SERVER_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
 Endpoint = ${ENDPOINT}
 AllowedIPs = ${ALLOWED_IPS}
-PeristentKeepalive = 5
+PersistentKeepalive = 5
 
 "
 
