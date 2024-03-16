@@ -39,6 +39,39 @@ It will install WireGuard (kernel module and tools) on the server, configure it,
 
 Run the script again to add or remove clients!
 
+## Headless installation
+
+It's also possible to run the script headless, e.g. without waiting for user input, in an automated way.
+
+Example usage:
+
+```bash
+APPROVE_INSTALL=y ./wireguard-install.sh
+
+# or
+
+export APPROVE_INSTALL=y
+./wireguard-install.sh
+```
+
+This will set a default set of variables, bypassing any user input.
+
+If you want to customise your installation, you can use variables, as shown below:
+
+```
+export APPROVE_INSTALL=y
+export SERVER_PUB_IP="54.14.1.48"
+export SERVER_PORT=64567
+export CLIENT_NAME=client
+```
+
+If the server is behind NAT, you can specify its endpoint with the `SERVER_PUB_IP` variable. If the endpoint is the public IP address which it is behind, you can use `SERVER_PUB_IP=$(curl -s https://api.ipify.org)` (the script defaults to this). The endpoint can be an IP or a domain.
+
+The headless installation involves adding a new user. Adding `CLIENT_NAME=foo` will change the name of the new user to `foo` instead of the default.
+
+Other variables can be set as required on your choice (`SERVER_NIC`). You can find them in the `installQuestions()` function of the script.
+
+
 ## Providers
 
 I recommend these cheap cloud providers for your VPN server:
