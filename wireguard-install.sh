@@ -211,14 +211,6 @@ function installWireGuard() {
 		yum update -y
 		amazon-linux-extras install epel -y
 		yum install -y wireguard-tools iptables qrencode
-		
-		# Enable WireGuard kernel module
-		echo "Enabling WireGuard kernel module..."
-		modprobe wireguard
-		if ! lsmod | grep -q wireguard; then
-			echo "Failed to load WireGuard kernel module"
-			exit 1
-		fi
 	fi
 
 	# Make sure the directory exists (this does not seem the be the case on fedora)
