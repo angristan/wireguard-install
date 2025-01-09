@@ -17,6 +17,7 @@ WireGuard does not fit your environment? Check out [openvpn-install](https://git
 Supported distributions:
 
 - AlmaLinux >= 8
+- Amazon Linux
 - Arch Linux
 - CentOS Stream >= 8
 - Debian >= 10
