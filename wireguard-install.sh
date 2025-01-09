@@ -61,8 +61,10 @@ function checkOS() {
 		OS=oracle
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
+	elif [[ ${ID} == "amzn" ]] || [[ ${ID_LIKE} == *"amzn"* ]]; then
+		OS=amazon
 	else
-		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle or Arch Linux system"
+		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle, Amazon or Arch Linux system"
 		exit 1
 	fi
 }
@@ -204,6 +206,11 @@ function installWireGuard() {
 		dnf install -y wireguard-tools qrencode iptables
 	elif [[ ${OS} == 'arch' ]]; then
 		pacman -S --needed --noconfirm wireguard-tools qrencode
+	elif [[ ${OS} == 'amazon' ]]; then
+		# Amazon Linux specific installation
+		yum update -y
+		amazon-linux-extras install epel -y
+		yum install -y wireguard-tools iptables qrencode
 	fi
 
 	# Make sure the directory exists (this does not seem the be the case on fedora)
@@ -458,6 +465,8 @@ function uninstallWg() {
 			yum remove --noautoremove wireguard-tools qrencode
 		elif [[ ${OS} == 'arch' ]]; then
 			pacman -Rs --noconfirm wireguard-tools qrencode
+		elif [[ ${OS} == 'amazon' ]]; then
+			yum remove -y --noautoremove wireguard-tools qrencode
 		fi
 
 		rm -rf /etc/wireguard
