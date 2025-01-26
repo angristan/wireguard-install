@@ -16,18 +16,32 @@ function isRoot() {
 }
 
 function checkVirt() {
-	if [ "$(systemd-detect-virt)" == "openvz" ]; then
+	function openvzErr() {
 		echo "OpenVZ is not supported"
 		exit 1
-	fi
-
-	if [ "$(systemd-detect-virt)" == "lxc" ]; then
+	}
+	function lxcErr() {
 		echo "LXC is not supported (yet)."
 		echo "WireGuard can technically run in an LXC container,"
 		echo "but the kernel module has to be installed on the host,"
 		echo "the container has to be run with some specific parameters"
 		echo "and only the tools need to be installed in the container."
 		exit 1
+	}
+	if command -v virt-what &>/dev/null; then
+		if [ "$(virt-what)" == "openvz" ]; then
+            openvzErr
+        fi
+        if [ "$(virt-what)" == "lxc" ]; then
+            lxcErr
+        fi
+	else
+		if [ "$(systemd-detect-virt)" == "openvz" ]; then
+            openvzErr
+        fi
+        if [ "$(systemd-detect-virt)" == "lxc" ]; then
+            lxcErr
+        fi
 	fi
 }
 
@@ -61,6 +75,11 @@ function checkOS() {
 		OS=oracle
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
+	elif [[ -e /etc/alpine-release ]]; then
+		OS=alpine
+		if ! command -v virt-what &>/dev/null; then
+            apk update && apk add virt-what
+        fi
 	else
 		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle or Arch Linux system"
 		exit 1
@@ -97,8 +116,8 @@ function getHomeDirForClient() {
 
 function initialCheck() {
 	isRoot
-	checkVirt
 	checkOS
+	checkVirt
 }
 
 function installQuestions() {
@@ -118,7 +137,7 @@ function installQuestions() {
 	read -rp "IPv4 or IPv6 public address: " -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
 
 	# Detect public interface and pre-fill for the user
-	SERVER_NIC="$(ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)' | head -1)"
+	SERVER_NIC="$(ip -4 route ls | grep default | awk '/dev/ {for (i=1; i<=NF; i++) if ($i == "dev") print $(i+1)}' | head -1)"
 	until [[ ${SERVER_PUB_NIC} =~ ^[a-zA-Z0-9_]+$ ]]; do
 		read -rp "Public interface: " -e -i "${SERVER_NIC}" SERVER_PUB_NIC
 	done
@@ -204,6 +223,12 @@ function installWireGuard() {
 		dnf install -y wireguard-tools qrencode iptables
 	elif [[ ${OS} == 'arch' ]]; then
 		pacman -S --needed --noconfirm wireguard-tools qrencode
+	elif [[ ${OS} == 'alpine' ]]; then
+		apk update
+		apk add wireguard-tools iptables build-base libpng-dev
+		curl -O https://fukuchi.org/works/qrencode/qrencode-4.1.1.tar.gz
+		tar xf qrencode-4.1.1.tar.gz
+		(cd qrencode-4.1.1 || exit && ./configure && make && make install && ldconfig)
 	fi
 
 	# Make sure the directory exists (this does not seem the be the case on fedora)
@@ -257,26 +282,46 @@ PostDown = ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE" >
 	echo "net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 
-	sysctl --system
+	if [[ ${OS} = 'alpine' ]]; then
+		sysctl -p /etc/sysctl.d/wg.conf
+		rc-update add sysctl
+		ln -s /etc/init.d/wg-quick "/etc/init.d/wg-quick.${SERVER_WG_NIC}"
+		rc-service "wg-quick.${SERVER_WG_NIC}" start
+		rc-update add "wg-quick.${SERVER_WG_NIC}"
+	else
+		sysctl --system
 
-	systemctl start "wg-quick@${SERVER_WG_NIC}"
-	systemctl enable "wg-quick@${SERVER_WG_NIC}"
+		systemctl start "wg-quick@${SERVER_WG_NIC}"
+		systemctl enable "wg-quick@${SERVER_WG_NIC}"
+	fi
 
 	newClient
 	echo -e "${GREEN}If you want to add more clients, you simply need to run this script another time!${NC}"
 
 	# Check if WireGuard is running
-	systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
+	if [[ ${OS} == 'alpine' ]]; then
+		rc-service --quiet "wg-quick.${SERVER_WG_NIC}" status
+	else
+		systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
+	fi
 	WG_RUNNING=$?
 
 	# WireGuard might not work if we updated the kernel. Tell the user to reboot
 	if [[ ${WG_RUNNING} -ne 0 ]]; then
 		echo -e "\n${RED}WARNING: WireGuard does not seem to be running.${NC}"
-		echo -e "${ORANGE}You can check if WireGuard is running with: systemctl status wg-quick@${SERVER_WG_NIC}${NC}"
+		if [[ ${OS} == 'alpine' ]]; then
+			echo -e "${ORANGE}You can check if WireGuard is running with: rc-service wg-quick.${SERVER_WG_NIC} status${NC}"
+		else
+			echo -e "${ORANGE}You can check if WireGuard is running with: systemctl status wg-quick@${SERVER_WG_NIC}${NC}"
+		fi
 		echo -e "${ORANGE}If you get something like \"Cannot find device ${SERVER_WG_NIC}\", please reboot!${NC}"
 	else # WireGuard is running
 		echo -e "\n${GREEN}WireGuard is running.${NC}"
-		echo -e "${GREEN}You can check the status of WireGuard with: systemctl status wg-quick@${SERVER_WG_NIC}\n\n${NC}"
+		if [[ ${OS} == 'alpine' ]]; then
+			echo -e "${GREEN}You can check the status of WireGuard with: rc-service wg-quick.${SERVER_WG_NIC} status\n\n${NC}"
+		else
+			echo -e "${GREEN}You can check the status of WireGuard with: systemctl status wg-quick@${SERVER_WG_NIC}\n\n${NC}"
+		fi
 		echo -e "${ORANGE}If you don't have internet connectivity from your client, try to reboot the server.${NC}"
 	fi
 }
@@ -436,8 +481,15 @@ function uninstallWg() {
 	if [[ $REMOVE == 'y' ]]; then
 		checkOS
 
-		systemctl stop "wg-quick@${SERVER_WG_NIC}"
-		systemctl disable "wg-quick@${SERVER_WG_NIC}"
+		if [[ ${OS} == 'alpine' ]]; then
+			rc-service "wg-quick.${SERVER_WG_NIC}" stop
+			rc-update del "wg-quick.${SERVER_WG_NIC}"
+			unlink "/etc/init.d/wg-quick.${SERVER_WG_NIC}"
+			rc-update del sysctl
+		else
+			systemctl stop "wg-quick@${SERVER_WG_NIC}"
+			systemctl disable "wg-quick@${SERVER_WG_NIC}"
+		fi
 
 		if [[ ${OS} == 'ubuntu' ]]; then
 			apt-get remove -y wireguard wireguard-tools qrencode
@@ -458,16 +510,24 @@ function uninstallWg() {
 			yum remove --noautoremove wireguard-tools qrencode
 		elif [[ ${OS} == 'arch' ]]; then
 			pacman -Rs --noconfirm wireguard-tools qrencode
+		elif [[ ${OS} == 'alpine' ]]; then
+			(cd qrencode-4.1.1 || exit && make uninstall)
+			rm -rf qrencode-* || exit
+			apk del wireguard-tools build-base libpng-dev
 		fi
 
 		rm -rf /etc/wireguard
 		rm -f /etc/sysctl.d/wg.conf
 
-		# Reload sysctl
-		sysctl --system
+		if [[ ${OS} == 'alpine' ]]; then
+			rc-service --quiet "wg-quick.${SERVER_WG_NIC}" status &>/dev/null
+		else
+			# Reload sysctl
+			sysctl --system
 
-		# Check if WireGuard is running
-		systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
+			# Check if WireGuard is running
+			systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
+		fi
 		WG_RUNNING=$?
 
 		if [[ ${WG_RUNNING} -eq 0 ]]; then
