@@ -30,18 +30,18 @@ function checkVirt() {
 	}
 	if command -v virt-what &>/dev/null; then
 		if [ "$(virt-what)" == "openvz" ]; then
-            openvzErr
-        fi
-        if [ "$(virt-what)" == "lxc" ]; then
-            lxcErr
-        fi
+			openvzErr
+		fi
+		if [ "$(virt-what)" == "lxc" ]; then
+			lxcErr
+		fi
 	else
 		if [ "$(systemd-detect-virt)" == "openvz" ]; then
-            openvzErr
-        fi
-        if [ "$(systemd-detect-virt)" == "lxc" ]; then
-            lxcErr
-        fi
+			openvzErr
+		fi
+		if [ "$(systemd-detect-virt)" == "lxc" ]; then
+			lxcErr
+		fi
 	fi
 }
 
@@ -78,8 +78,8 @@ function checkOS() {
 	elif [[ -e /etc/alpine-release ]]; then
 		OS=alpine
 		if ! command -v virt-what &>/dev/null; then
-            apk update && apk add virt-what
-        fi
+			apk update && apk add virt-what
+		fi
 	else
 		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle or Arch Linux system"
 		exit 1
