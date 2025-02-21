@@ -185,6 +185,17 @@ function installQuestions() {
 	read -n1 -r -p "Press any key to continue..."
 }
 
+function installSELinuxRules() {
+	local osid
+	osid="$1"
+
+	if [[ $osid == 'fedora' ]]; then
+		echo "module se_wg 1.0;require { type wireguard_t; class capability { dac_override dac_read_search }; } allow wireguard_t self:capability { dac_override dac_read_search };" >/tmp/se_wg.te && checkmodule -M -m -o /tmp/se_wg.mod /tmp/se_wg.te && semodule_package -o /tmp/se_wg.pp -m /tmp/se_wg.mod && semodule -i /tmp/se_wg.pp
+	elif [[ $osid == 'centos' || $osid == 'almalinux' || $osid == 'rocky' ]]; then
+		echo "module se_wg 1.0; require {type wireguard_t; type cert_t; type firewalld_t; class capability { dac_override dac_read_search }; class dir search; class dbus send_msg;} allow wireguard_t cert_t:dir search; allow wireguard_t firewalld_t:dbus send_msg; allow wireguard_t self:capability { dac_override dac_read_search };" >/tmp/se_wg.te && checkmodule -M -m -o /tmp/se_wg.mod /tmp/se_wg.te && semodule_package -o /tmp/se_wg.pp -m /tmp/se_wg.mod && semodule -i /tmp/se_wg.pp
+	fi
+}
+
 function installWireGuard() {
 	# Run setup questions first
 	installQuestions
@@ -206,6 +217,7 @@ function installWireGuard() {
 			dnf install -y dnf-plugins-core
 			dnf copr enable -y jdoss/wireguard
 			dnf install -y wireguard-dkms
+			dnf install -y checkpolicy
 		fi
 		dnf install -y wireguard-tools iptables qrencode
 	elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
@@ -213,6 +225,7 @@ function installWireGuard() {
 			yum install -y epel-release elrepo-release
 			yum install -y kmod-wireguard
 			yum install -y qrencode # not available on release 9
+			yum install -y checkpolicy
 		fi
 		yum install -y wireguard-tools iptables
 	elif [[ ${OS} == 'oracle' ]]; then
@@ -281,6 +294,8 @@ PostDown = ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE" >
 	# Enable routing on the server
 	echo "net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
+
+	installSELinuxRules ${OS}
 
 	if [[ ${OS} == 'alpine' ]]; then
 		sysctl -p /etc/sysctl.d/wg.conf
@@ -496,13 +511,13 @@ function uninstallWg() {
 		elif [[ ${OS} == 'debian' ]]; then
 			apt-get remove -y wireguard wireguard-tools qrencode
 		elif [[ ${OS} == 'fedora' ]]; then
-			dnf remove -y --noautoremove wireguard-tools qrencode
+			dnf remove -y --noautoremove wireguard-tools qrencode checkpolicy
 			if [[ ${VERSION_ID} -lt 32 ]]; then
 				dnf remove -y --noautoremove wireguard-dkms
 				dnf copr disable -y jdoss/wireguard
 			fi
 		elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
-			yum remove -y --noautoremove wireguard-tools
+			yum remove -y --noautoremove wireguard-tools checkpolicy
 			if [[ ${VERSION_ID} == 8* ]]; then
 				yum remove --noautoremove kmod-wireguard qrencode
 			fi
