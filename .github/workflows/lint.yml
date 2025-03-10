@@ -16,7 +16,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: shfmt
-        uses: bltavares/actions/shfmt@master
-        env:
-          SHFMT_ARGS: -d
+      - uses: mfinelli/setup-shfmt@v3
+      - run: shfmt -d wireguard-install.sh
