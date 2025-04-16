@@ -225,10 +225,7 @@ function installWireGuard() {
 		pacman -S --needed --noconfirm wireguard-tools qrencode
 	elif [[ ${OS} == 'alpine' ]]; then
 		apk update
-		apk add wireguard-tools iptables build-base libpng-dev
-		curl -O https://fukuchi.org/works/qrencode/qrencode-4.1.1.tar.gz
-		tar xf qrencode-4.1.1.tar.gz
-		(cd qrencode-4.1.1 || exit && ./configure && make && make install && ldconfig)
+		apk add wireguard-tools iptables libqrencode-tools
 	fi
 
 	# Make sure the directory exists (this does not seem the be the case on fedora)
@@ -513,7 +510,7 @@ function uninstallWg() {
 		elif [[ ${OS} == 'alpine' ]]; then
 			(cd qrencode-4.1.1 || exit && make uninstall)
 			rm -rf qrencode-* || exit
-			apk del wireguard-tools build-base libpng-dev
+			apk del wireguard-tools libqrencode libqrencode-tools
 		fi
 
 		rm -rf /etc/wireguard
