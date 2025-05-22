@@ -1,20 +1,17 @@
-# WireGuard installer
+# Instalador de WireGuard
 
-![Lint](https://github.com/angristan/wireguard-install/workflows/Lint/badge.svg)
-[![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/angristan)
+**Este proyecto es un script bash que busca configurar una VPN [WireGuard](https://www.wireguard.com/) en un servidor Linux de la forma más sencilla posible.**
 
-**This project is a bash script that aims to setup a [WireGuard](https://www.wireguard.com/) VPN on a Linux server, as easily as possible!**
+WireGuard es una VPN punto a punto que puede usarse de diferentes maneras. En este contexto, nos referimos a una VPN como: el cliente reenvía todo su tráfico al servidor a través de un túnel cifrado.
+El servidor aplica NAT al tráfico del cliente, de modo que parecerá que este navega por la web con la IP del servidor.
 
-WireGuard is a point-to-point VPN that can be used in different ways. Here, we mean a VPN as in: the client will forward all its traffic through an encrypted tunnel to the server.
-The server will apply NAT to the client's traffic so it will appear as if the client is browsing the web with the server's IP.
+El script es compatible con IPv4 e IPv6.
 
-The script supports both IPv4 and IPv6. Please check the [issues](https://github.com/angristan/wireguard-install/issues) for ongoing development, bugs and planned features! You might also want to check the [discussions](https://github.com/angristan/wireguard-install/discussions) for help.
+¿WireGuard no se adapta a tu entorno? Consulta [openvpn-install](https://github.com/angristan/openvpn-install).
 
-WireGuard does not fit your environment? Check out [openvpn-install](https://github.com/angristan/openvpn-install).
+## Requisitos
 
-## Requirements
-
-Supported distributions:
+Distribuciones compatibles:
 
 - AlmaLinux >= 8
 - Alpine Linux
@@ -26,46 +23,44 @@ Supported distributions:
 - Rocky Linux >= 8
 - Ubuntu >= 18.04
 
-## Usage
+## Como usar (version estable)
 
-Download and execute the script. Answer the questions asked by the script and it will take care of the rest.
+Dentro de tu vps pega el comando siguiente, luego anda confirmando los datos de las opciones.
 
 ```bash
-curl -O https://raw.githubusercontent.com/angristan/wireguard-install/master/wireguard-install.sh
+curl -O https://raw.githubusercontent.com/Cormaxs/wireguard-install-update/master/wireguard-install.sh
 chmod +x wireguard-install.sh
 ./wireguard-install.sh
 ```
 
-It will install WireGuard (kernel module and tools) on the server, configure it, create a systemd service and a client configuration file.
+Instalará WireGuard (módulo del kernel y herramientas) en el servidor, lo configurará, creará un servicio systemd y un archivo de configuración de cliente.
 
-Run the script again to add or remove clients!
+Para ver el menu ejecutar
 
-## Providers
+```bash
+wg-menu
+```
 
-I recommend these cheap cloud providers for your VPN server:
+## version de desarrollo (inestable)
 
-- [Vultr](https://www.vultr.com/?ref=8948982-8H): Worldwide locations, IPv6 support, starting at \$5/month
-- [Hetzner](https://hetzner.cloud/?ref=ywtlvZsjgeDq): Germany, Finland and USA. IPv6, 20 TB of traffic, starting at 4.5€/month
-- [Digital Ocean](https://m.do.co/c/ed0ba143fe53): Worldwide locations, IPv6 support, starting at \$4/month
+Se recomienda usar la version estable, esta version es solo para nuevas funcionalidades
 
-## Contributing
+```bash
+curl -O https://raw.githubusercontent.com/Cormaxs/wireguard-install-update/funcionalidades/wireguard-install.sh
+chmod +x wireguard-install.sh
+./wireguard-install.sh
+```
 
-## Discuss changes
+## Proveedores
 
-Please open an issue before submitting a PR if you want to discuss a change, especially if it's a big one.
+Recomiendo estos proveedores de nube económicos para tu servidor VPN:
 
-### Code formatting
+- [Vultr](https://www.vultr.com/?ref=8948982-8H): Ubicaciones en todo el mundo, compatibilidad con IPv6, desde $5 al mes
+- [Hetzner](https://hetzner.cloud/?ref=ywtlvZsjgeDq): Alemania, Finlandia y EE. UU. IPv6, 20 TB de tráfico, desde $4,5 al mes
+- [Digital Ocean](https://m.do.co/c/ed0ba143fe53): Ubicaciones en todo el mundo, compatibilidad con IPv6, desde $4 al mes
+- [Dartnode](https://dartnode.com/vps/1/configure): EE. UU, compatibilidad con IPv6, desde $2 al mes
+- [Bluehosting](https://panel.bluehosting.host/cart.php?a=confproduct&i=0): chile, compatibilidad con IPv6, desde $1,5 al mes
 
-We use [shellcheck](https://github.com/koalaman/shellcheck) and [shfmt](https://github.com/mvdan/sh) to enforce bash styling guidelines and good practices. They are executed for each commit / PR with GitHub Actions, so you can check the configuration [here](https://github.com/angristan/wireguard-install/blob/master/.github/workflows/lint.yml).
+## Créditos y licencia
 
-## Say thanks
-
-You can [say thanks](https://saythanks.io/to/angristan) if you want!
-
-## Credits & Licence
-
-This project is under the [MIT Licence](https://raw.githubusercontent.com/angristan/wireguard-install/master/LICENSE)
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=angristan/wireguard-install&type=Date)](https://star-history.com/#angristan/wireguard-install&Date)
+Este proyecto está bajo la [Licencia MIT](https://raw.githubusercontent.com/angristan/wireguard-install/master/LICENSE)
