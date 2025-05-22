@@ -296,7 +296,6 @@ function installQuestions() {
 		read -rp "IPv4 del servidor WireGuard: " -e -i 10.66.66.1 SERVER_WG_IPV4
 	done
 
-	# Pregunta por la IPv6 del servidor WireGuard
 	until [[ ${SERVER_WG_IPV6} =~ ^([a-f0-9]{1,4}:){3,4}: ]]; do
 		read -rp "IPv6 del servidor WireGuard: " -e -i fd42:42:42::1 SERVER_WG_IPV6
 	done
@@ -439,13 +438,33 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 		sysctl -p /etc/sysctl.d/wg.conf
 		rc-update add sysctl
 		ln -s /etc/init.d/wg-quick "/etc/init.d/wg-quick.${SERVER_WG_NIC}"
-		rc-service "wg-quick.${SERVER_WG_NIC}" start
+		echo -e "${ORANGE}Intentando iniciar WireGuard...${NC}"
+		local RETRIES=3
+		local SUCCESS=0
+		for i in $(seq 1 $RETRIES); do
+			rc-service "wg-quick.${SERVER_WG_NIC}" start && SUCCESS=1 && break
+			echo -e "${ORANGE}Intento $i fallido. Reintentando en 2 segundos...${NC}"
+			sleep 2
+		done
+		if [[ $SUCCESS -eq 0 ]]; then
+			echo -e "${RED}Falló el inicio de WireGuard después de $RETRIES intentos. Por favor, revisa los logs.${NC}"
+		fi
 		rc-update add "wg-quick.${SERVER_WG_NIC}"
 	else
 		sysctl --system # Aplica todos los cambios de sysctl inmediatamente
 
-		systemctl start "wg-quick@${SERVER_WG_NIC}"  # Inicia la interfaz WireGuard
-		systemctl enable "wg-quick@${SERVER_WG_NIC}" # Habilita el inicio automático al arrancar
+		echo -e "${ORANGE}Intentando iniciar WireGuard...${NC}"
+		local RETRIES=3
+		local SUCCESS=0
+		for i in $(seq 1 $RETRIES); do
+			systemctl start "wg-quick@${SERVER_WG_NIC}" && SUCCESS=1 && break
+			echo -e "${ORANGE}Intento $i fallido. Reintentando en 2 segundos...${NC}"
+			sleep 2
+		done
+		if [[ $SUCCESS -eq 0 ]]; then
+			echo -e "${RED}Falló el inicio de WireGuard después de $RETRIES intentos. Por favor, revisa los logs.${NC}"
+		fi
+		systemctl enable "wg-quick@${SERVER_WG_NIC}"   # Habilita el inicio automático al arrancar
 	fi
 
 	# Genera el primer cliente después de la instalación del servidor
