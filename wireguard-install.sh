@@ -415,18 +415,19 @@ PersistentKeepalive = 25" >"/etc/wireguard/${SERVER_WG_NIC}.conf"
 		echo "PostUp = firewall-cmd --zone=public --add-interface=${SERVER_WG_NIC} && firewall-cmd --add-port ${SERVER_PORT}/udp && firewall-cmd --add-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && firewall-cmd --add-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/64 masquerade'
 PostDown = firewall-cmd --zone=public --remove-interface=${SERVER_WG_NIC} && firewall-cmd --remove-port ${SERVER_PORT}/udp && firewall-cmd --remove-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && firewall-cmd --remove-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/64 masquerade'" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
 	else # Usa iptables si firewalld no está corriendo
-		echo "PostUp = iptables -I INPUT -p udp --dport ${SERVER_PORT} -j ACCEPT
-PostUp = iptables -I FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEPT
-PostUp = iptables -I FORWARD -i ${SERVER_WG_NIC} -j ACCEPT
-PostUp = iptables -t nat -A POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE
-PostUp = ip6tables -I FORWARD -i ${SERVER_WG_NIC} -j ACCEPT
-PostUp = ip6tables -t nat -A POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE
-PostDown = iptables -D INPUT -p udp --dport ${SERVER_PORT} -j ACCEPT
-PostDown = iptables -D FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEPT
-PostDown = iptables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT
-PostDown = iptables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE
-PostDown = ip6tables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT
-PostDown = ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
+		# Optimización: Envuelve los comandos iptables en bash -c y usa rutas completas para mayor robustez
+		echo "PostUp = bash -c '/usr/sbin/iptables -I INPUT -p udp --dport ${SERVER_PORT} -j ACCEPT && \
+/usr/sbin/iptables -I FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEPT && \
+/usr/sbin/iptables -I FORWARD -i ${SERVER_WG_NIC} -j ACCEPT && \
+/usr/sbin/iptables -t nat -A POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE && \
+/usr/sbin/ip6tables -I FORWARD -i ${SERVER_WG_NIC} -j ACCEPT && \
+/usr/sbin/ip6tables -t nat -A POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE'
+PostDown = bash -c '/usr/sbin/iptables -D INPUT -p udp --dport ${SERVER_PORT} -j ACCEPT && \
+/usr/sbin/iptables -D FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEPT && \
+/usr/sbin/iptables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT && \
+/usr/sbin/iptables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE && \
+/usr/sbin/ip6tables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT && \
+/usr/sbin/ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE'" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
 	fi
 
 	# Habilita el enrutamiento IP en el kernel (IPv4 e IPv6)
@@ -464,7 +465,7 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 		if [[ $SUCCESS -eq 0 ]]; then
 			echo -e "${RED}Falló el inicio de WireGuard después de $RETRIES intentos. Por favor, revisa los logs.${NC}"
 		fi
-		systemctl enable "wg-quick@${SERVER_WG_NIC}"   # Habilita el inicio automático al arrancar
+		systemctl enable "wg-quick@${SERVER_WG_NIC}" # Habilita el inicio automático al arrancar
 	fi
 
 	# Genera el primer cliente después de la instalación del servidor
