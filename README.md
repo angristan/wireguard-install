@@ -23,7 +23,7 @@ Distribuciones compatibles:
 - Rocky Linux >= 8
 - Ubuntu >= 18.04
 
-## Como usar
+## Como usar (version estable)
 
 Dentro de tu vps pega el comando siguiente, luego anda confirmando los datos de las opciones.
 
@@ -39,6 +39,16 @@ Para ver el menu ejecutar
 
 ```bash
 wg-menu
+```
+
+## version de desarrollo (inestable)
+
+Se recomienda usar la version estable, esta version es solo para nuevas funcionalidades
+
+```bash
+curl -O https://raw.githubusercontent.com/Cormaxs/wireguard-install-update/funcionalidades/wireguard-install.sh
+chmod +x wireguard-install.sh
+./wireguard-install.sh
 ```
 
 ## Proveedores
