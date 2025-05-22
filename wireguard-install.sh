@@ -420,7 +420,7 @@ PostDown = iptables -D FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEP
 PostDown = iptables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT
 PostDown = iptables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE
 PostDown = ip6tables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT
-PostDown = ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
+PostDown = ip6tables -D NAT -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE" >>"/etc/wireguard/${SERVER_WG_NIC}.conf" # Fix for ip6tables NAT PostDown
 	fi
 
 	# Habilita el enrutamiento en el servidor
@@ -486,6 +486,7 @@ function newClient() {
 	echo "El nombre del cliente debe consistir en caracteres alfanuméricos. También puede incluir guiones bajos o guiones y no puede exceder los 15 caracteres."
 
 	local CLIENT_EXISTS
+	local CLIENT_NAME
 	until [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ && ${#CLIENT_NAME} -lt 16 ]]; do
 		read -rp "Nombre del cliente: " -e CLIENT_NAME
 		CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
@@ -499,6 +500,7 @@ function newClient() {
 	done
 
 	local DOT_EXISTS
+	local DOT_IP
 	for DOT_IP in {2..254}; do # Empieza desde 2 porque .1 es el servidor
 		DOT_EXISTS=$(grep -c "${SERVER_WG_IPV4::-1}${DOT_IP}" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
 		if [[ ${DOT_EXISTS} == '0' ]]; then
@@ -515,6 +517,7 @@ function newClient() {
 	local BASE_IP
 	BASE_IP=$(echo "$SERVER_WG_IPV4" | awk -F '.' '{ print $1"."$2"."$3 }')
 	local IPV4_EXISTS
+	local CLIENT_WG_IPV4
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
 		read -rp "IPv4 del cliente WireGuard: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV4="${BASE_IP}.${DOT_IP}"
@@ -529,6 +532,7 @@ function newClient() {
 
 	BASE_IP=$(echo "$SERVER_WG_IPV6" | awk -F '::' '{ print $1 }')
 	local IPV6_EXISTS
+	local CLIENT_WG_IPV6
 	until [[ ${IPV6_EXISTS} == '0' ]]; do
 		read -rp "IPv6 del cliente WireGuard: ${BASE_IP}::" -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV6="${BASE_IP}::${DOT_IP}"
@@ -591,27 +595,75 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 	fi
 
 	echo -e "${GREEN}Tu archivo de configuración de cliente está en ${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf${NC}"
+	read -n1 -r -p "Presiona cualquier tecla para continuar..."
 }
 
 function listClients() {
 	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
 	if [[ ${NUMBER_OF_CLIENTS} -eq 0 ]]; then
 		echo ""
-		echo "¡No tienes clientes existentes!"
-		exit 0 # Salir sin error si no hay clientes
+		echo -e "${ORANGE}¡No tienes clientes existentes!${NC}"
+		read -n1 -r -p "Presiona cualquier tecla para continuar..."
+		return 0 # Usamos return en lugar de exit para volver al menú
 	fi
 
 	echo ""
 	echo "Clientes WireGuard existentes:"
 	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
+	echo ""
+	read -n1 -r -p "Presiona cualquier tecla para continuar..."
+}
+
+function viewClientConfig() {
+	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
+	if [[ ${NUMBER_OF_CLIENTS} -eq 0 ]]; then
+		echo ""
+		echo -e "${ORANGE}¡No tienes clientes existentes para ver!${NC}"
+		read -n1 -r -p "Presiona cualquier tecla para continuar..."
+		return
+	fi
+
+	echo ""
+	echo "Selecciona el cliente cuya configuración deseas ver:"
+	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
+	local CLIENT_NUMBER
+	until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
+		if [[ ${NUMBER_OF_CLIENTS} == '1' ]]; then
+			read -rp "Selecciona un cliente [1]: " CLIENT_NUMBER
+		else
+			read -rp "Selecciona un cliente [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+		fi
+	done
+
+	CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
+	HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
+	local CLIENT_CONFIG_FILE="${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+
+	if [[ -f "${CLIENT_CONFIG_FILE}" ]]; then
+		echo -e "${GREEN}\n--- Configuración de ${CLIENT_NAME} ---${NC}"
+		cat "${CLIENT_CONFIG_FILE}"
+		echo -e "${GREEN}-------------------------------------${NC}"
+
+		if command -v qrencode &>/dev/null; then
+			echo -e "${GREEN}\nCódigo QR para ${CLIENT_NAME}:\n${NC}"
+			qrencode -t ansiutf8 -l L <"${CLIENT_CONFIG_FILE}"
+			echo ""
+		else
+			echo -e "${ORANGE}qrencode no está instalado. No se puede generar el código QR.${NC}"
+		fi
+	else
+		echo -e "${RED}Error: Archivo de configuración para ${CLIENT_NAME} no encontrado en ${CLIENT_CONFIG_FILE}.${NC}"
+	fi
+	read -n1 -r -p "Presiona cualquier tecla para continuar..."
 }
 
 function revokeClient() {
 	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
 	if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
 		echo ""
-		echo "¡No tienes clientes existentes!"
-		exit 0 # Salir sin error si no hay clientes
+		echo -e "${ORANGE}¡No tienes clientes existentes para revocar!${NC}"
+		read -n1 -r -p "Presiona cualquier tecla para continuar..."
+		return
 	fi
 
 	echo ""
@@ -642,6 +694,183 @@ function revokeClient() {
 	# Reinicia wireguard para aplicar los cambios
 	wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
 	echo -e "${GREEN}Cliente ${CLIENT_NAME} revocado exitosamente.${NC}"
+	read -n1 -r -p "Presiona cualquier tecla para continuar..."
+}
+
+function enableDisableClient() {
+	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
+	if [[ ${NUMBER_OF_CLIENTS} -eq 0 ]]; then
+		echo ""
+		echo -e "${ORANGE}¡No tienes clientes existentes para habilitar/deshabilitar!${NC}"
+		read -n1 -r -p "Presiona cualquier tecla para continuar..."
+		return
+	fi
+
+	echo ""
+	echo "Selecciona el cliente que deseas habilitar/deshabilitar:"
+
+	# Mostrar clientes y su estado (habilitado/deshabilitado)
+	local i=1
+	while read -r line; do
+		local client_name=$(echo "$line" | cut -d ' ' -f 3)
+		if grep -q -E "^### Client ${client_name}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf"; then
+			if grep -q -E "^### Client ${client_name}\$\n#[Peer]" "/etc/wireguard/${SERVER_WG_NIC}.conf"; then
+				echo "   ${i}) ${client_name} ${ORANGE}(Deshabilitado)${NC}"
+			else
+				echo "   ${i}) ${client_name} ${GREEN}(Habilitado)${NC}"
+			fi
+		fi
+		i=$((i + 1))
+	done < <(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+
+	local CLIENT_NUMBER
+	until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
+		if [[ ${NUMBER_OF_CLIENTS} == '1' ]]; then
+			read -rp "Selecciona un cliente [1]: " CLIENT_NUMBER
+		else
+			read -rp "Selecciona un cliente [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+		fi
+	done
+
+	CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
+
+	if grep -q -E "^### Client ${CLIENT_NAME}\$\n#[Peer]" "/etc/wireguard/${SERVER_WG_NIC}.conf"; then
+		# Cliente está deshabilitado, lo habilitamos
+		echo -e "${GREEN}Habilitando cliente: ${CLIENT_NAME}...${NC}"
+		sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/{ s/^#\([A-Za-z]\)/#\1/; s/^#[Peer]/[Peer]/; s/^#PublicKey/PublicKey/; s/^#PresharedKey/PresharedKey/; s/^#AllowedIPs/AllowedIPs/; }" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+		sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/ { /^\s*#/! s/^#// }" "/etc/wireguard/${SERVER_WG_NIC}.conf" # Intenta descomentar líneas que podrían estar comentadas
+		sed -i "s/^#\([A-Za-z0-9_-]\)/\\1/" "/etc/wireguard/${SERVER_WG_NIC}.conf" # Uncomments lines starting with # followed by alphanumeric/underscore/hyphen
+		sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/ { s/^#\[Peer\]/\[Peer\]/; s/^#PublicKey/PublicKey/; s/^#PresharedKey/PresharedKey/; s/^#AllowedIPs/AllowedIPs/; }" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+
+		# Eliminar líneas que solo tienen un '#' (artefactos de un posible doble comentado)
+		sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/ { /^#/!s/^#//; /^##/d }" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+		sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/ { s/^##/#/ }" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+
+		# Re-comentar la línea ### Client si está descomentada
+		sed -i "/^### Client ${CLIENT_NAME}\$/!b;N;s/^### Client \(.*\)\n\[Peer\]/### Client \1\n[Peer]/" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+
+		echo -e "${GREEN}Cliente ${CLIENT_NAME} habilitado exitosamente.${NC}"
+	else
+		# Cliente está habilitado, lo deshabilitamos
+		echo -e "${ORANGE}Deshabilitando cliente: ${CLIENT_NAME}...${NC}"
+		sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/{ s/^#\([A-Za-z]\)/#\1/; s/^\[Peer\]/#\[Peer\]/; s/^PublicKey/#PublicKey/; s/^PresharedKey/#PresharedKey/; s/^AllowedIPs/#AllowedIPs/; }" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+		sed -i "s/^### Client \(.*\)/### Client \1\n#/" "/etc/wireguard/${SERVER_WG_NIC}.conf" # Add a dummy commented line to fix previous sed issue
+		sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/ { s/^\(\[Peer\]\)/#\1/; s/^\(PublicKey\)/#\1/; s/^\(PresharedKey\)/#\1/; s/^\(AllowedIPs\)/#\1/; }" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+		echo -e "${ORANGE}Cliente ${CLIENT_NAME} deshabilitado exitosamente.${NC}"
+	fi
+
+	wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
+	read -n1 -r -p "Presiona cualquier tecla para continuar..."
+}
+
+
+function showServerInfo() {
+	echo -e "${GREEN}\n--- Información del Servidor WireGuard ---${NC}"
+	echo "Interfaz WireGuard: ${SERVER_WG_NIC}"
+	echo "IP pública del servidor: ${SERVER_PUB_IP}"
+	echo "Puerto de escucha: ${SERVER_PORT}/udp"
+	echo "IPs del servidor en la VPN: ${SERVER_WG_IPV4}/24, ${SERVER_WG_IPV6}/64"
+	echo "Clave pública del servidor: ${SERVER_PUB_KEY}"
+	echo "DNS de clientes (predeterminado): ${CLIENT_DNS_1} ${CLIENT_DNS_2}"
+	echo "IPs permitidas para clientes (predeterminado): ${ALLOWED_IPS}"
+
+	echo ""
+	echo "Estado del servicio WireGuard:"
+	if [[ ${OS} == 'alpine' ]]; then
+		rc-service "wg-quick.${SERVER_WG_NIC}" status || echo -e "${ORANGE}No se pudo obtener el estado del servicio.${NC}"
+	else
+		systemctl status "wg-quick@${SERVER_WG_NIC}" --no-pager || echo -e "${ORANGE}No se pudo obtener el estado del servicio.${NC}"
+	fi
+	echo ""
+	read -n1 -r -p "Presiona cualquier tecla para continuar..."
+}
+
+function viewCurrentWgStatus() {
+	echo -e "${GREEN}\n--- Estado Actual de WireGuard (${SERVER_WG_NIC}) ---${NC}"
+	if ! command -v wg &>/dev/null; then
+		echo -e "${RED}Error: Las herramientas de WireGuard (wg) no están instaladas.${NC}"
+		echo -e "${ORANGE}Por favor, reinstala WireGuard o verifica la instalación.${NC}"
+		read -n1 -r -p "Presiona cualquier tecla para continuar..."
+		return
+	fi
+
+	if ! wg show "${SERVER_WG_NIC}" &>/dev/null; then
+		echo -e "${ORANGE}La interfaz WireGuard '${SERVER_WG_NIC}' no está activa o no existe.${NC}"
+		echo -e "${ORANGE}Asegúrate de que el servicio 'wg-quick@${SERVER_WG_NIC}' esté ejecutándose.${NC}"
+	else
+		wg show "${SERVER_WG_NIC}"
+	fi
+	echo ""
+	read -n1 -r -p "Presiona cualquier tecla para continuar..."
+}
+
+function changeServerPort() {
+	echo -e "${GREEN}\n--- Cambiar Puerto del Servidor WireGuard ---${NC}"
+	local NEW_PORT
+	local OLD_PORT=${SERVER_PORT}
+
+	until [[ ${NEW_PORT} =~ ^[0-9]+$ ]] && [ "${NEW_PORT}" -ge 1 ] && [ "${NEW_PORT}" -le 65535 ]; do
+		read -rp "Introduce el nuevo puerto para WireGuard [1-65535]: " -e -i "${RANDOM_PORT}" NEW_PORT
+		if [ "${NEW_PORT}" == "${OLD_PORT}" ]; then
+			echo -e "${ORANGE}El nuevo puerto es el mismo que el actual. No se realizarán cambios.${NC}"
+			read -n1 -r -p "Presiona cualquier tecla para continuar..."
+			return
+		fi
+	done
+
+	echo -e "${ORANGE}Cambiando el puerto del servidor de ${OLD_PORT} a ${NEW_PORT}...${NC}"
+
+	# Actualizar el archivo de parámetros
+	sed -i "s/^SERVER_PORT=${OLD_PORT}/SERVER_PORT=${NEW_PORT}/" /etc/wireguard/params
+	SERVER_PORT=${NEW_PORT} # Actualizar la variable en el script
+
+	# Actualizar el archivo de configuración del servidor
+	sed -i "s/^ListenPort = ${OLD_PORT}/ListenPort = ${NEW_PORT}/" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+
+	# Actualizar reglas de firewall
+	if pgrep firewalld; then
+		firewall-cmd --remove-port="${OLD_PORT}"/udp --permanent || true
+		firewall-cmd --add-port="${NEW_PORT}"/udp --permanent
+		firewall-cmd --reload
+	else # iptables
+		# Eliminar reglas antiguas y añadir nuevas para el puerto
+		# Nota: Esto es más robusto si se elimina la línea del PostUp original y se reinserta.
+		# Para simplificar y evitar problemas con múltiples PostUp, aquí se asume que solo hay una línea de puerto.
+		# Una solución más robusta podría implicar reescribir todo el bloque PostUp/PostDown.
+		sed -i "s/PostUp = iptables -I INPUT -p udp --dport ${OLD_PORT} -j ACCEPT/PostUp = iptables -I INPUT -p udp --dport ${NEW_PORT} -j ACCEPT/" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+		sed -i "s/PostDown = iptables -D INPUT -p udp --dport ${OLD_PORT} -j ACCEPT/PostDown = iptables -D INPUT -p udp --dport ${NEW_PORT} -j ACCEPT/" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+	fi
+
+	# Reiniciar WireGuard para aplicar los cambios
+	if [[ ${OS} == 'alpine' ]]; then
+		rc-service "wg-quick.${SERVER_WG_NIC}" restart
+	else
+		systemctl restart "wg-quick@${SERVER_WG_NIC}"
+	fi
+
+	echo -e "${GREEN}Puerto del servidor WireGuard cambiado a ${NEW_PORT} exitosamente.${NC}"
+	echo -e "${ORANGE}¡Recuerda que tus clientes existentes necesitarán actualizar su configuración de Endpoint para conectarse al nuevo puerto!${NC}"
+	read -n1 -r -p "Presiona cualquier tecla para continuar..."
+}
+
+function backupConfiguration() {
+	echo -e "${GREEN}\n--- Copia de Seguridad de la Configuración de WireGuard ---${NC}"
+	local BACKUP_DIR="/root/wireguard_backups"
+	local TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+	local BACKUP_FILE="${BACKUP_DIR}/wireguard_config_backup_${TIMESTAMP}.tar.gz"
+
+	mkdir -p "${BACKUP_DIR}"
+	chmod 700 "${BACKUP_DIR}" # Asegura que solo root pueda ver las copias de seguridad
+
+	echo -e "${ORANGE}Creando copia de seguridad de /etc/wireguard en ${BACKUP_FILE}...${NC}"
+
+	if tar -czf "${BACKUP_FILE}" "/etc/wireguard"; then
+		echo -e "${GREEN}Copia de seguridad creada exitosamente en: ${BACKUP_FILE}${NC}"
+		echo "Para restaurar, puedes usar: tar -xzf ${BACKUP_FILE} -C /"
+	else
+		echo -e "${RED}Error: Falló la creación de la copia de seguridad.${NC}"
+	fi
+	read -n1 -r -p "Presiona cualquier tecla para continuar..."
 }
 
 function uninstallWg() {
@@ -727,14 +956,24 @@ function manageMenu() {
 	echo "Parece que WireGuard ya está instalado."
 	echo ""
 	echo "¿Qué quieres hacer?"
-	echo "   1) Añadir un nuevo usuario"
-	echo "   2) Listar todos los usuarios"
-	echo "   3) Revocar un usuario existente"
-	echo "   4) Desinstalar WireGuard"
-	echo "   5) Salir"
+	echo "--- Gestión de Clientes ---"
+	echo "   1) Añadir un nuevo cliente"
+	echo "   2) Listar todos los clientes"
+	echo "   3) Ver configuración de un cliente" # Nueva
+	echo "   4) Revocar un cliente existente"
+	echo "   5) Habilitar/Deshabilitar un cliente" # Nueva
+	echo "--- Información y Diagnóstico ---"
+	echo "   6) Mostrar información del servidor" # Nueva
+	echo "   7) Ver estado actual de WireGuard" # Nueva
+	echo "--- Configuración del Servidor ---"
+	echo "   8) Cambiar puerto del servidor" # Nueva
+	echo "--- Utilidades ---"
+	echo "   9) Hacer copia de seguridad de la configuración" # Nueva
+	echo "   10) Desinstalar WireGuard"
+	echo "   11) Salir"
 	local MENU_OPTION
-	until [[ ${MENU_OPTION} =~ ^[1-5]$ ]]; do
-		read -rp "Selecciona una opción [1-5]: " MENU_OPTION
+	until [[ ${MENU_OPTION} =~ ^(1[0-1]|[1-9])$ ]]; do
+		read -rp "Selecciona una opción [1-11]: " MENU_OPTION
 	done
 	case "${MENU_OPTION}" in
 	1)
@@ -744,12 +983,30 @@ function manageMenu() {
 		listClients
 		;;
 	3)
-		revokeClient
+		viewClientConfig
 		;;
 	4)
-		uninstallWg
+		revokeClient
 		;;
 	5)
+		enableDisableClient
+		;;
+	6)
+		showServerInfo
+		;;
+	7)
+		viewCurrentWgStatus
+		;;
+	8)
+		changeServerPort
+		;;
+	9)
+		backupConfiguration
+		;;
+	10)
+		uninstallWg
+		;;
+	11)
 		echo -e "${GREEN}Saliendo... ¡Hasta pronto!${NC}"
 		exit 0
 		;;
