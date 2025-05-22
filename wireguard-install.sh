@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Secure WireGuard server installer
-# https://github.com/Cormaxs/wireguard-install-update-update-update
+# https://github.com/Cormaxs/wireguard-install-update
 
 # Habilitar el modo de salida inmediata en caso de error para mayor robustez
 set -e
@@ -257,7 +257,7 @@ function showDnsOptions() {
 # configuraciones basicas, ip, puerto, dns, ips permitidas, name interfaces ethernet
 function installQuestions() {
 	echo "¡Bienvenido al instalador de WireGuard!"
-	echo "El repositorio de git está disponible en: https://github.com/Cormaxs/wireguard-install-update-update"
+	echo "El repositorio de git está disponible en: https://github.com/Cormaxs/wireguard-install-update"
 	echo ""
 	echo "Necesito hacerte algunas preguntas antes de iniciar la configuración."
 	echo "Puedes mantener las opciones predeterminadas y simplemente presionar Enter si estás de acuerdo."
