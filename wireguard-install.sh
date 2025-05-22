@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Secure WireGuard server installer
-# https://github.com/Cormaxs/wireguard-install-update
+# https://github.com/Cormaxs/wireguard-install-update-update-update
 
 # Habilitar el modo de salida inmediata en caso de error para mayor robustez
 set -e
@@ -27,7 +27,10 @@ function isRoot() {
 # El || true al final de command -v es para evitar que set -e detenga el script si el comando no existe.
 if [[ "$(basename "$0")" != "wg-menu" || "$(readlink -f "$0")" != "${TARGET_INSTALL_PATH}" ]]; then
 	# Solo intenta instalar si el comando 'wg-menu' no existe o si apunta a una ubicación diferente
-	if ! command -v wg-menu &>/dev/null || [[ "$(readlink -f "$(command -v wg-menu 2>/dev/null || true)")" != "${TARGET_INSTALL_PATH}" ]]; then
+	local WG_MENU_COMMAND_EXISTS
+	command -v wg-menu &>/dev/null && WG_MENU_COMMAND_EXISTS=0 || WG_MENU_COMMAND_EXISTS=1
+
+	if [ "${WG_MENU_COMMAND_EXISTS}" -ne 0 ] || [[ "$(readlink -f "$(command -v wg-menu 2>/dev/null || true)")" != "${TARGET_INSTALL_PATH}" ]]; then
 		echo -e "${GREEN}Detectado que el script no está instalado como 'wg-menu'.${NC}"
 		echo -e "${ORANGE}Intentando auto-instalación en ${TARGET_INSTALL_PATH}...${NC}"
 
@@ -55,20 +58,24 @@ fi
 
 # A partir de aquí, el script asume que se está ejecutando como 'wg-menu' o que ya pasó la auto-instalación.
 
+function openvzErr() {
+	echo -e "${RED}OpenVZ no es compatible.${NC}"
+	exit 1
+}
+function lxcErr() {
+	echo -e "${RED}LXC no es compatible (aún).${NC}"
+	echo "WireGuard técnicamente puede ejecutarse en un contenedor LXC,"
+	echo "pero el módulo del kernel debe instalarse en el host,"
+	echo "el contenedor debe ejecutarse con algunos parámetros específicos"
+	echo "y solo las herramientas necesitan instalarse en el contenedor."
+	exit 1
+}
+
 function checkVirt() {
-	function openvzErr() {
-		echo -e "${RED}OpenVZ no es compatible.${NC}"
-		exit 1
-	}
-	function lxcErr() {
-		echo -e "${RED}LXC no es compatible (aún).${NC}"
-		echo "WireGuard técnicamente puede ejecutarse en un contenedor LXC,"
-		echo "pero el módulo del kernel debe instalarse en el host,"
-		echo "el contenedor debe ejecutarse con algunos parámetros específicos"
-		echo "y solo las herramientas necesitan instalarse en el contenedor."
-		exit 1
-	}
-	if command -v virt-what &>/dev/null; then
+	local VIRT_WHAT_EXISTS
+	command -v virt-what &>/dev/null && VIRT_WHAT_EXISTS=0 || VIRT_WHAT_EXISTS=1
+
+	if [ "${VIRT_WHAT_EXISTS}" -eq 0 ]; then
 		if [ "$(virt-what)" == "openvz" ]; then
 			openvzErr
 		fi
@@ -138,30 +145,24 @@ function checkOS() {
 
 function getHomeDirForClient() {
 	local CLIENT_NAME=$1
+	local HOME_DIR_VAR
 
 	if [ -z "${CLIENT_NAME}" ]; then
 		echo -e "${RED}Error: getHomeDirForClient() requiere un nombre de cliente como argumento.${NC}"
 		exit 1
 	fi
 
-	# Directorio de inicio del usuario, donde se escribirá la configuración del cliente
-	if [ -e "/home/${CLIENT_NAME}" ] && [ -d "/home/${CLIENT_NAME}" ]; then
-		# si $1 es un nombre de usuario existente con un directorio home
-		HOME_DIR="/home/${CLIENT_NAME}"
-	elif [ "${SUDO_USER}" ]; then
-		# si no, usa SUDO_USER
-		if [ "${SUDO_USER}" == "root" ]; then
-			# Si se ejecuta sudo como root
-			HOME_DIR="/root"
-		else
-			HOME_DIR="/home/${SUDO_USER}"
-		fi
+	if id -u "${CLIENT_NAME}" &>/dev/null; then
+		# If $CLIENT_NAME is an existing user
+		HOME_DIR_VAR=$(eval echo "~${CLIENT_NAME}")
+	elif [ -n "${SUDO_USER}" ] && [ "${SUDO_USER}" != "root" ]; then
+		# If run via sudo by a non-root user
+		HOME_DIR_VAR=$(eval echo "~${SUDO_USER}")
 	else
-		# si no es SUDO_USER, usa /root
-		HOME_DIR="/root"
+		# Default to /root if no other user or SUDO_USER is root
+		HOME_DIR_VAR="/root"
 	fi
-
-	echo "$HOME_DIR"
+	echo "$HOME_DIR_VAR"
 }
 
 #antes de instalar verifica
@@ -257,7 +258,7 @@ function showDnsOptions() {
 # configuraciones basicas, ip, puerto, dns, ips permitidas, name interfaces ethernet
 function installQuestions() {
 	echo "¡Bienvenido al instalador de WireGuard!"
-	echo "El repositorio de git está disponible en: https://github.com/Cormaxs/wireguard-install-update"
+	echo "El repositorio de git está disponible en: https://github.com/Cormaxs/wireguard-install-update-update"
 	echo ""
 	echo "Necesito hacerte algunas preguntas antes de iniciar la configuración."
 	echo "Puedes mantener las opciones predeterminadas y simplemente presionar Enter si estás de acuerdo."
@@ -318,17 +319,16 @@ function installWireGuard() {
 
 	# Instala las herramientas y el módulo de WireGuard
 	echo -e "${GREEN}Instalando WireGuard y dependencias...${NC}"
-	if [[ ${OS} == 'ubuntu' ]] || [[ ${OS} == 'debian' && ${VERSION_ID} -gt 10 ]]; then
-		apt-get update
-		apt-get install -y wireguard iptables resolvconf qrencode
-	elif [[ ${OS} == 'debian' ]]; then
+	if [[ ${OS} == 'ubuntu' ]] || [[ ${OS} == 'debian' && ${VERSION_ID} -ge 10 ]]; then # Debian 10 Buster includes WireGuard in main
+		apt-get update -qq
+		DEBIAN_FRONTEND=noninteractive apt-get install -y wireguard iptables resolvconf qrencode
+	elif [[ ${OS} == 'debian' ]]; then # For older Debian versions requiring backports
 		if ! grep -rqs "^deb .* buster-backports" /etc/apt/; then
 			echo "deb http://deb.debian.org/debian buster-backports main" >/etc/apt/sources.list.d/backports.list
-			apt-get update
+			apt-get update -qq
 		fi
-		apt update
-		apt-get install -y iptables resolvconf qrencode
-		apt-get install -y -t buster-backports wireguard
+		DEBIAN_FRONTEND=noninteractive apt-get install -y iptables resolvconf qrencode
+		DEBIAN_FRONTEND=noninteractive apt-get install -y -t buster-backports wireguard
 	elif [[ ${OS} == 'fedora' ]]; then
 		if [[ ${VERSION_ID} -lt 32 ]]; then
 			dnf install -y dnf-plugins-core
@@ -337,12 +337,12 @@ function installWireGuard() {
 		fi
 		dnf install -y wireguard-tools iptables qrencode
 	elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
-		if [[ ${VERSION_ID} == 8* ]]; then
+		if [[ ${VERSION_ID} == 8* ]]; then # EPEL and kmod-wireguard are primarily for EL8
 			yum install -y epel-release elrepo-release
 			yum install -y kmod-wireguard
-			yum install -y qrencode # not available on release 9
 		fi
-		yum install -y wireguard-tools iptables
+		# qrencode might not be available on EL9+ by default, but wireguard-tools should be.
+		yum install -y wireguard-tools qrencode || true # qrencode might fail, make it non-fatal
 	elif [[ ${OS} == 'oracle' ]]; then
 		dnf install -y oraclelinux-developer-release-el8
 		dnf config-manager --disable -y ol8_developer
@@ -350,14 +350,23 @@ function installWireGuard() {
 		dnf config-manager --save -y --setopt=ol8_developer_UEKR6.includepkgs='wireguard-tools*'
 		dnf install -y wireguard-tools qrencode iptables
 	elif [[ ${OS} == 'arch' ]]; then
-		pacman -S --needed --noconfirm wireguard-tools qrencode
+		pacman -Syu --needed --noconfirm wireguard-tools qrencode
 	elif [[ ${OS} == 'alpine' ]]; then
 		apk update
 		apk add wireguard-tools iptables build-base libpng-dev
-		# Construye qrencode desde la fuente ya que no está fácilmente disponible como paquete
-		curl -O https://fukuchi.org/works/qrencode/qrencode-4.1.1.tar.gz
-		tar xf qrencode-4.1.1.tar.gz
-		(cd qrencode-4.1.1 && ./configure && make && make install && ldconfig)
+		# Handle qrencode compilation
+		if ! command -v qrencode &>/dev/null; then
+			echo -e "${ORANGE}Compiling qrencode from source...${NC}"
+			curl -sO https://fukuchi.org/works/qrencode/qrencode-4.1.1.tar.gz
+			tar xf qrencode-4.1.1.tar.gz
+			(cd qrencode-4.1.1 && ./configure --prefix=/usr && make && make install && ldconfig)
+		fi
+	fi
+
+	# Add check for installation success:
+	if ! command -v wg &>/dev/null; then
+		echo -e "${RED}Error: WireGuard tools not found after installation attempt. Aborting.${NC}"
+		exit 1
 	fi
 
 	# Asegura que el directorio exista y establece los permisos correctos
