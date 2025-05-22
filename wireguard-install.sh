@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # Secure WireGuard server installer
-# https://github.com/Cormaxs/wireguard-install-update-update-update
+# https://github.com/Cormaxs/wireguard-install-update
+
+# Habilitar el modo de salida inmediata en caso de error para mayor robustez
+set -e
 
 RED='\033[0;31m'
 ORANGE='\033[0;33m'
@@ -10,21 +13,21 @@ NC='\033[0m'
 
 # --- Configuración para la auto-instalación ---
 TARGET_INSTALL_PATH="/usr/local/bin/wg-menu"
-INITIAL_SCRIPCormaxs/wireguard-install-update-update.sh" # Asegúrate de que este es el nombre de tu archivo original
 
-# Función para verificar si se ejecuta como root (movida al inicio para auto-instalación)
+# Función para verificar si se ejecuta como root
 function isRoot() {
     if [ "${EUID}" -ne 0 ]; then
-        echo "Necesitas ejecutar este script como root. Por favor, usa 'sudo' o ejecuta como usuario root."
+        echo -e "${RED}Necesitas ejecutar este script como root. Por favor, usa 'sudo' o ejecuta como usuario root.${NC}"
         exit 1
     fi
 }
 
 # --- Lógica de Auto-instalación ---
-# Verifica si el script no está ya en la ubicación final o si su nombre de ejecución no es 'wg-menu'
-if [[ "$(basename "$0")" == "${INITIAL_SCRIPT_NAME}" || "$(readlink -f "$0")" != "${TARGET_INSTALL_PATH}" ]]; then
+# Verifica si el script no está ya en la ubicación final y si su nombre de ejecución no es 'wg-menu'
+# El || true al final de command -v es para evitar que set -e detenga el script si el comando no existe.
+if [[ "$(basename "$0")" != "wg-menu" || "$(readlink -f "$0")" != "${TARGET_INSTALL_PATH}" ]]; then
     # Solo intenta instalar si el comando 'wg-menu' no existe o si apunta a una ubicación diferente
-    if ! command -v wg-menu &>/dev/null || [[ "$(readlink -f "$(command -v wg-menu 2>/dev/null)")" != "${TARGET_INSTALL_PATH}" ]]; then
+    if ! command -v wg-menu &>/dev/null || [[ "$(readlink -f "$(command -v wg-menu 2>/dev/null || true)")" != "${TARGET_INSTALL_PATH}" ]]; then
         echo -e "${GREEN}Detectado que el script no está instalado como 'wg-menu'.${NC}"
         echo -e "${ORANGE}Intentando auto-instalación en ${TARGET_INSTALL_PATH}...${NC}"
 
@@ -40,12 +43,11 @@ if [[ "$(basename "$0")" == "${INITIAL_SCRIPT_NAME}" || "$(readlink -f "$0")" !=
             echo -e "${ORANGE}Re-ejecutando el script desde su nueva ubicación...${NC}"
             # Re-ejecuta el script desde su nueva ubicación, pasando todos los argumentos
             exec "${TARGET_INSTALL_PATH}" "$@"
-            # Si 'exec' falla (lo cual es raro), el script continuaría aquí
         else
             echo -e "${RED}Falló al mover el script a ${TARGET_INSTALL_PATH}. Por favor, verifica los permisos.${NC}"
             echo "Puedes intentar instalarlo manualmente con:"
-            echo "  sudo mv \"${INITIAL_SCRIPT_NAME}\" \"${TARGET_INSTALL_PATH}\""
-            echo "  sudo chmod +x \"${TARGET_INSTALL_PATH}\""
+            echo "   sudo mv \"$(basename "$0")\" \"${TARGET_INSTALL_PATH}\""
+            echo "   sudo chmod +x \"${TARGET_INSTALL_PATH}\""
             exit 1
         fi
     fi
@@ -55,11 +57,11 @@ fi
 
 function checkVirt() {
     function openvzErr() {
-        echo "OpenVZ no es compatible"
+        echo -e "${RED}OpenVZ no es compatible.${NC}"
         exit 1
     }
     function lxcErr() {
-        echo "LXC no es compatible (aún)."
+        echo -e "${RED}LXC no es compatible (aún).${NC}"
         echo "WireGuard técnicamente puede ejecutarse en un contenedor LXC,"
         echo "pero el módulo del kernel debe instalarse en el host,"
         echo "el contenedor debe ejecutarse con algunos parámetros específicos"
@@ -74,53 +76,54 @@ function checkVirt() {
             lxcErr
         fi
     else
-        if [ "$(systemd-detect-virt)" == "openvz" ]; then
+        if [ "$(systemd-detect-virt || true)" == "openvz" ]; then # || true para manejar casos donde systemd-detect-virt no existe
             openvzErr
         fi
-        if [ "$(systemd-detect-virt)" == "lxc" ]; then
+        if [ "$(systemd-detect-virt || true)" == "lxc" ]; then # || true para manejar casos donde systemd-detect-virt no existe
             lxcErr
         fi
     fi
 }
 
-#verifica si el S.O es valido
+# verifica si el S.O es valido
 function checkOS() {
-    source /etc/os-release
+    source /etc/os-release || { echo -e "${RED}No se pudo cargar /etc/os-release. ¿Sistema operativo compatible?${NC}"; exit 1; }
     OS="${ID}"
     if [[ ${OS} == "debian" || ${OS} == "raspbian" ]]; then
         if [[ ${VERSION_ID} -lt 10 ]]; then
-            echo "Tu versión de Debian (${VERSION_ID}) no es compatible. Por favor, usa Debian 10 Buster o posterior"
+            echo -e "${RED}Tu versión de Debian (${VERSION_ID}) no es compatible. Por favor, usa Debian 10 Buster o posterior.${NC}"
             exit 1
         fi
         OS=debian # overwrite if raspbian
     elif [[ ${OS} == "ubuntu" ]]; then
         RELEASE_YEAR=$(echo "${VERSION_ID}" | cut -d'.' -f1)
         if [[ ${RELEASE_YEAR} -lt 18 ]]; then
-            echo "Tu versión de Ubuntu (${VERSION_ID}) no es compatible. Por favor, usa Ubuntu 18.04 o posterior"
+            echo -e "${RED}Tu versión de Ubuntu (${VERSION_ID}) no es compatible. Por favor, usa Ubuntu 18.04 o posterior.${NC}"
             exit 1
         fi
     elif [[ ${OS} == "fedora" ]]; then
         if [[ ${VERSION_ID} -lt 32 ]]; then
-            echo "Tu versión de Fedora (${VERSION_ID}) no es compatible. Por favor, usa Fedora 32 o posterior"
+            echo -e "${RED}Tu versión de Fedora (${VERSION_ID}) no es compatible. Por favor, usa Fedora 32 o posterior.${NC}"
             exit 1
         fi
     elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
         if [[ ${VERSION_ID} == 7* ]]; then
-            echo "Tu versión de CentOS (${VERSION_ID}) no es compatible. Por favor, usa CentOS 8 o posterior"
+            echo -e "${RED}Tu versión de CentOS (${VERSION_ID}) no es compatible. Por favor, usa CentOS 8 o posterior.${NC}"
             exit 1
         fi
     elif [[ -e /etc/oracle-release ]]; then
-        source /etc/os-release
+        source /etc/os-release || { echo -e "${RED}No se pudo cargar /etc/os-release para Oracle Linux.${NC}"; exit 1; }
         OS=oracle
     elif [[ -e /etc/arch-release ]]; then
         OS=arch
     elif [[ -e /etc/alpine-release ]]; then
         OS=alpine
         if ! command -v virt-what &>/dev/null; then
+            echo -e "${ORANGE}Instalando virt-what para detección de virtualización...${NC}"
             apk update && apk add virt-what
         fi
     else
-        echo "Parece que no estás ejecutando este instalador en un sistema Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle o Arch Linux"
+        echo -e "${RED}Parece que no estás ejecutando este instalador en un sistema Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle o Arch Linux.${NC}"
         exit 1
     fi
 }
@@ -129,13 +132,13 @@ function getHomeDirForClient() {
     local CLIENT_NAME=$1
 
     if [ -z "${CLIENT_NAME}" ]; then
-        echo "Error: getHomeDirForClient() requiere un nombre de cliente como argumento"
+        echo -e "${RED}Error: getHomeDirForClient() requiere un nombre de cliente como argumento.${NC}"
         exit 1
     fi
 
     # Directorio de inicio del usuario, donde se escribirá la configuración del cliente
-    if [ -e "/home/${CLIENT_NAME}" ]; then
-        # si $1 es un nombre de usuario
+    if [ -e "/home/${CLIENT_NAME}" ] && [ -d "/home/${CLIENT_NAME}" ]; then
+        # si $1 es un nombre de usuario existente con un directorio home
         HOME_DIR="/home/${CLIENT_NAME}"
     elif [ "${SUDO_USER}" ]; then
         # si no, usa SUDO_USER
@@ -167,12 +170,13 @@ function validateIp() {
     local ip=$1
     local stat=1
 
+    # Validación IPv4
     if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
         IFS='.' read -r i j k l <<< "$ip"
         if ((i <= 255 && j <= 255 && k <= 255 && l <= 255)); then
             stat=0
         fi
-    # Validación simplificada de IPv6 - cubre los formatos válidos más comunes
+    # Validación IPv6 simplificada, cubre los formatos válidos más comunes pero no todos los casos extremos (ej. IPv4-in-IPv6)
     elif [[ $ip =~ ^([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4}$ || $ip =~ ^([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$ || $ip =~ ^([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}$ || $ip =~ ^([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}$ || $ip =~ ^([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}$ || $ip =~ ^([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}$ || $ip =~ ^[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6}|:)$ || $ip =~ ^::([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}$ || $ip =~ ^::[0-9a-fA-F]{1,4}$ ]]; then
         stat=0
     fi
@@ -221,6 +225,7 @@ function showDnsOptions() {
                     echo -e "${ORANGE}Dirección IP inválida. Por favor, introduce una dirección IPv4 o IPv6 válida.${NC}"
                 fi
             done
+            local use_second_dns
             read -rp "¿Deseas usar un segundo resolvedor DNS? [y/n]: " -e -i "n" use_second_dns
             if [[ ${use_second_dns} == "y" ]]; then
                 until validateIp "${CLIENT_DNS_2}"; do
@@ -230,7 +235,7 @@ function showDnsOptions() {
                     fi
                 done
             else
-                CLIENT_DNS_2="${CLIENT_DNS_1}" # Usa el primer DNS si no se proporciona un segundo
+                CLIENT_DNS_2="" # No se usará un segundo DNS si el usuario no lo desea
             fi
             ;;
         6)
@@ -241,25 +246,25 @@ function showDnsOptions() {
     esac
 }
 
-#configuraciones basicas, ip, puerto,   dns, ips permitidas, name interfaces ethernet
+# configuraciones basicas, ip, puerto, dns, ips permitidas, name interfaces ethernet
 function installQuestions() {
     echo "¡Bienvenido al instalador de WireGuard!"
-    echo "El repositorio de git está disponible en: https://github.com/Cormaxs/wireguard-install-update-update"
+    echo "El repositorio de git está disponible en: https://github.com/Cormaxs/wireguard-install-update"
     echo ""
     echo "Necesito hacerte algunas preguntas antes de iniciar la configuración."
     echo "Puedes mantener las opciones predeterminadas y simplemente presionar Enter si estás de acuerdo."
     echo ""
 
     # Detecta la dirección IP pública IPv4 o IPv6 y pre-rellena para el usuario
-    SERVER_PUB_IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | awk '{print $1}' | head -1)
+    SERVER_PUB_IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | awk '{print $1}' | head -1 || true)
     if [[ -z ${SERVER_PUB_IP} ]]; then
         # Detecta la dirección IP pública IPv6
-        SERVER_PUB_IP=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | head -1)
+        SERVER_PUB_IP=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | awk '{print $1}' | head -1 || true)
     fi
     read -rp "Dirección IP pública IPv4 o IPv6: " -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
 
     # Detecta la interfaz pública y pre-rellena para el usuario
-    SERVER_NIC="$(ip -4 route ls | grep default | awk '/dev/ {for (i=1; i<=NF; i++) if ($i == "dev") print $(i+1)}' | head -1)"
+    SERVER_NIC="$(ip -4 route ls | grep default | awk '/dev/ {for (i=1; i<=NF; i++) if ($i == "dev") print $(i+1)}' | head -1 || true)"
     until [[ ${SERVER_PUB_NIC} =~ ^[a-zA-Z0-9_]+$ ]]; do
         read -rp "Interfaz pública: " -e -i "${SERVER_NIC}" SERVER_PUB_NIC
     done
@@ -304,6 +309,7 @@ function installWireGuard() {
     installQuestions
 
     # Instala las herramientas y el módulo de WireGuard
+    echo -e "${GREEN}Instalando WireGuard y dependencias...${NC}"
     if [[ ${OS} == 'ubuntu' ]] || [[ ${OS} == 'debian' && ${VERSION_ID} -gt 10 ]]; then
         apt-get update
         apt-get install -y wireguard iptables resolvconf qrencode
@@ -340,20 +346,21 @@ function installWireGuard() {
     elif [[ ${OS} == 'alpine' ]]; then
         apk update
         apk add wireguard-tools iptables build-base libpng-dev
+        # Construye qrencode desde la fuente ya que no está fácilmente disponible como paquete
         curl -O https://fukuchi.org/works/qrencode/qrencode-4.1.1.tar.gz
         tar xf qrencode-4.1.1.tar.gz
-        (cd qrencode-4.1.1 || exit && ./configure && make && make install && ldconfig)
+        (cd qrencode-4.1.1 && ./configure && make && make install && ldconfig)
     fi
 
-    # Asegura que el directorio exista (esto no parece ser el caso en fedora)
-    mkdir /etc/wireguard >/dev/null 2>&1
-
-    chmod 600 -R /etc/wireguard/
+    # Asegura que el directorio exista y establece los permisos correctos
+    mkdir -p /etc/wireguard
+    chmod 700 /etc/wireguard/
+    chmod 600 /etc/wireguard/*.conf >/dev/null 2>&1 || true # Permisos para archivos .conf (ignorar si no hay archivos aún)
 
     SERVER_PRIV_KEY=$(wg genkey)
     SERVER_PUB_KEY=$(echo "${SERVER_PRIV_KEY}" | wg pubkey)
 
-    # Guarda la configuración de WireGuard
+    # Guarda la configuración de WireGuard (parámetros)
     echo "SERVER_PUB_IP=${SERVER_PUB_IP}
 SERVER_PUB_NIC=${SERVER_PUB_NIC}
 SERVER_WG_NIC=${SERVER_WG_NIC}
@@ -374,10 +381,10 @@ PrivateKey = ${SERVER_PRIV_KEY}" >"/etc/wireguard/${SERVER_WG_NIC}.conf"
 
     if pgrep firewalld; then
         FIREWALLD_IPV4_ADDRESS=$(echo "${SERVER_WG_IPV4}" | cut -d"." -f1-3)".0"
-        FIREWALLD_IPV6_ADDRESS=$(echo "${SERVER_WG_IPV6}" | sed 's/:[^:]*$/:0/')
-        echo "PostUp = firewall-cmd --zone=public --add-interface=${SERVER_WG_NIC} && firewall-cmd --add-port ${SERVER_PORT}/udp && firewall-cmd --add-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && firewall-cmd --add-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/24 masquerade'
-PostDown = firewall-cmd --zone=public --add-interface=${SERVER_WG_NIC} && firewall-cmd --remove-port ${SERVER_PORT}/udp && firewall-cmd --remove-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && firewall-cmd --remove-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/24 masquerade'" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
-    else
+        FIREWALLD_IPV6_ADDRESS=$(echo "${SERVER_WG_IPV6}" | sed 's/:[^:]*$/:0/') # Asume un prefijo de 64 bits similar
+        echo "PostUp = firewall-cmd --zone=public --add-interface=${SERVER_WG_NIC} && firewall-cmd --add-port ${SERVER_PORT}/udp && firewall-cmd --add-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && firewall-cmd --add-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/64 masquerade'
+PostDown = firewall-cmd --zone=public --remove-interface=${SERVER_WG_NIC} && firewall-cmd --remove-port ${SERVER_PORT}/udp && firewall-cmd --remove-rich-rule='rule family=ipv4 source address=${FIREWALLD_IPV4_ADDRESS}/24 masquerade' && firewall-cmd --remove-rich-rule='rule family=ipv6 source address=${FIREWALLD_IPV6_ADDRESS}/64 masquerade'" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
+    else # iptables
         echo "PostUp = iptables -I INPUT -p udp --dport ${SERVER_PORT} -j ACCEPT
 PostUp = iptables -I FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEPT
 PostUp = iptables -I FORWARD -i ${SERVER_WG_NIC} -j ACCEPT
@@ -414,9 +421,9 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 
     # Verifica si WireGuard se está ejecutando
     if [[ ${OS} == 'alpine' ]]; then
-        rc-service --quiet "wg-quick.${SERVER_WG_NIC}" status
+        rc-service --quiet "wg-quick.${SERVER_WG_NIC}" status || true
     else
-        systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
+        systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}" || true
     fi
     WG_RUNNING=$?
 
@@ -454,19 +461,22 @@ function newClient() {
     echo ""
     echo "El nombre del cliente debe consistir en caracteres alfanuméricos. También puede incluir guiones bajos o guiones y no puede exceder los 15 caracteres."
 
-    until [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ && ${CLIENT_EXISTS} == '0' && ${#CLIENT_NAME} -lt 16 ]]; do
+    local CLIENT_EXISTS
+    until [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ && ${#CLIENT_NAME} -lt 16 ]]; do
         read -rp "Nombre del cliente: " -e CLIENT_NAME
-        CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+        CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
 
         if [[ ${CLIENT_EXISTS} != 0 ]]; then
             echo ""
             echo -e "${ORANGE}Ya se creó un cliente con el nombre especificado, por favor, elige otro nombre.${NC}"
             echo ""
+            CLIENT_NAME="" # Limpia para forzar otra entrada
         fi
     done
 
-    for DOT_IP in {2..254}; do
-        DOT_EXISTS=$(grep -c "${SERVER_WG_IPV4::-1}${DOT_IP}" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+    local DOT_EXISTS
+    for DOT_IP in {2..254}; do # Empieza desde 2 porque .1 es el servidor
+        DOT_EXISTS=$(grep -c "${SERVER_WG_IPV4::-1}${DOT_IP}" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
         if [[ ${DOT_EXISTS} == '0' ]]; then
             break
         fi
@@ -474,15 +484,17 @@ function newClient() {
 
     if [[ ${DOT_EXISTS} == '1' ]]; then
         echo ""
-        echo "La subred configurada soporta solo 253 clientes."
+        echo -e "${RED}La subred configurada soporta solo 253 clientes. No se puede añadir más.${NC}"
         exit 1
     fi
 
+    local BASE_IP
     BASE_IP=$(echo "$SERVER_WG_IPV4" | awk -F '.' '{ print $1"."$2"."$3 }')
+    local IPV4_EXISTS
     until [[ ${IPV4_EXISTS} == '0' ]]; do
         read -rp "IPv4 del cliente WireGuard: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
         CLIENT_WG_IPV4="${BASE_IP}.${DOT_IP}"
-        IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4/32" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+        IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4/32" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
 
         if [[ ${IPV4_EXISTS} != 0 ]]; then
             echo ""
@@ -492,10 +504,11 @@ function newClient() {
     done
 
     BASE_IP=$(echo "$SERVER_WG_IPV6" | awk -F '::' '{ print $1 }')
+    local IPV6_EXISTS
     until [[ ${IPV6_EXISTS} == '0' ]]; do
         read -rp "IPv6 del cliente WireGuard: ${BASE_IP}::" -e -i "${DOT_IP}" DOT_IP
         CLIENT_WG_IPV6="${BASE_IP}::${DOT_IP}"
-        IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}/128" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+        IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}/128" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
 
         if [[ ${IPV6_EXISTS} != 0 ]]; then
             echo ""
@@ -511,11 +524,20 @@ function newClient() {
 
     HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
 
+    # Forma la cadena DNS para el archivo de configuración del cliente
+    DNS_STRING=""
+    if [[ -n "${CLIENT_DNS_1}" ]]; then
+        DNS_STRING="DNS = ${CLIENT_DNS_1}"
+        if [[ -n "${CLIENT_DNS_2}" ]]; then
+            DNS_STRING="${DNS_STRING},${CLIENT_DNS_2}"
+        fi
+    fi
+
     # Crea el archivo del cliente y añade el servidor como par
     echo "[Interface]
 PrivateKey = ${CLIENT_PRIV_KEY}
 Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
-DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
+${DNS_STRING}
 
 [Peer]
 PublicKey = ${SERVER_PUB_KEY}
@@ -524,12 +546,13 @@ Endpoint = ${ENDPOINT}
 AllowedIPs = ${ALLOWED_IPS}" >"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 
     # Añade el cliente como par al servidor
-    echo -e "\n### Cliente ${CLIENT_NAME}
+    echo -e "\n### Client ${CLIENT_NAME}
 [Peer]
 PublicKey = ${CLIENT_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
 AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
 
+    # Aplicar cambios a la configuración de WireGuard sin reiniciar el servicio
     wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
 
     # Genera el código QR si qrencode está instalado
@@ -543,29 +566,32 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 }
 
 function listClients() {
-    NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+    NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
     if [[ ${NUMBER_OF_CLIENTS} -eq 0 ]]; then
         echo ""
         echo "¡No tienes clientes existentes!"
-        exit 1
+        exit 0 # Salir sin error si no hay clientes
     fi
 
+    echo ""
+    echo "Clientes WireGuard existentes:"
     grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
 }
 
 function revokeClient() {
-    NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+    NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" || true)
     if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
         echo ""
         echo "¡No tienes clientes existentes!"
-        exit 1
+        exit 0 # Salir sin error si no hay clientes
     fi
 
     echo ""
     echo "Selecciona el cliente existente que deseas revocar"
     grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
+    local CLIENT_NUMBER
     until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
-        if [[ ${CLIENT_NUMBER} == '1' ]]; then
+        if [[ ${NUMBER_OF_CLIENTS} == '1' ]]; then
             read -rp "Selecciona un cliente [1]: " CLIENT_NUMBER
         else
             read -rp "Selecciona un cliente [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
@@ -575,7 +601,10 @@ function revokeClient() {
     # Coincide el número seleccionado con un nombre de cliente
     CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
 
+    echo -e "${ORANGE}Revocando cliente: ${CLIENT_NAME}...${NC}"
+
     # Elimina el bloque [Peer] que coincide con $CLIENT_NAME
+    # sed -i utiliza un patrón para eliminar desde la línea "### Client CLIENT_NAME" hasta la siguiente línea vacía
     sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/d" "/etc/wireguard/${SERVER_WG_NIC}.conf"
 
     # Elimina el archivo de cliente generado
@@ -584,27 +613,30 @@ function revokeClient() {
 
     # Reinicia wireguard para aplicar los cambios
     wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
+    echo -e "${GREEN}Cliente ${CLIENT_NAME} revocado exitosamente.${NC}"
 }
 
 function uninstallWg() {
     echo ""
     echo -e "\n${RED}ADVERTENCIA: ¡Esto desinstalará WireGuard y eliminará todos los archivos de configuración!${NC}"
     echo -e "${ORANGE}Por favor, haz una copia de seguridad del directorio /etc/wireguard si quieres conservar tus archivos de configuración.\n${NC}"
-    read -rp "¿Realmente quieres eliminar WireGuard? [y/n]: " -e REMOVE
-    REMOVE=${REMOVE:-n}
+    local REMOVE
+    read -rp "¿Realmente quieres eliminar WireGuard? [y/n]: " -e -i "n" REMOVE
     if [[ $REMOVE == 'y' ]]; then
         checkOS
 
+        echo -e "${ORANGE}Deteniendo y deshabilitando el servicio WireGuard...${NC}"
         if [[ ${OS} == 'alpine' ]]; then
-            rc-service "wg-quick.${SERVER_WG_NIC}" stop
-            rc-update del "wg-quick.${SERVER_WG_NIC}"
-            unlink "/etc/init.d/wg-quick.${SERVER_WG_NIC}"
-            rc-update del sysctl
+            rc-service "wg-quick.${SERVER_WG_NIC}" stop || true
+            rc-update del "wg-quick.${SERVER_WG_NIC}" || true
+            unlink "/etc/init.d/wg-quick.${SERVER_WG_NIC}" || true
+            rc-update del sysctl || true
         else
-            systemctl stop "wg-quick@${SERVER_WG_NIC}"
-            systemctl disable "wg-quick@${SERVER_WG_NIC}"
+            systemctl stop "wg-quick@${SERVER_WG_NIC}" || true
+            systemctl disable "wg-quick@${SERVER_WG_NIC}" || true
         fi
 
+        echo -e "${ORANGE}Eliminando paquetes de WireGuard y dependencias...${NC}"
         if [[ ${OS} == 'ubuntu' ]]; then
             apt-get remove -y wireguard wireguard-tools qrencode
         elif [[ ${OS} == 'debian' ]]; then
@@ -625,50 +657,54 @@ function uninstallWg() {
         elif [[ ${OS} == 'arch' ]]; then
             pacman -Rs --noconfirm wireguard-tools qrencode
         elif [[ ${OS} == 'alpine' ]]; then
-            (cd qrencode-4.1.1 || exit && make uninstall)
-            rm -rf qrencode-* || exit
+            (cd qrencode-4.1.1 || true && make uninstall) || true
+            rm -rf qrencode-* || true
             apk del wireguard-tools build-base libpng-dev
         fi
 
+        echo -e "${ORANGE}Limpiando archivos de configuración...${NC}"
         rm -rf /etc/wireguard
         rm -f /etc/sysctl.d/wg.conf
+        rm -f "${TARGET_INSTALL_PATH}" # Elimina el script de auto-instalación
 
-        if [[ ${OS} == 'alpine' ]]; then
-            rc-service --quiet "wg-quick.${SERVER_WG_NIC}" status &>/dev/null
-        else
-            # Recarga sysctl
-            sysctl --system
-
-            # Verifica si WireGuard se está ejecutando
-            systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
+        if [[ ${OS} != 'alpine' ]]; then
+            sysctl --system # Recarga sysctl para asegurar que el reenvío esté deshabilitado si no hay otros ajustes.
         fi
-        WG_RUNNING=$?
+        
+        # Verifica si WireGuard se está ejecutando (debería fallar si la desinstalación fue exitosa)
+        local WG_RUNNING_AFTER_UNINSTALL=0
+        if [[ ${OS} == 'alpine' ]]; then
+            rc-service --quiet "wg-quick.${SERVER_WG_NIC}" status &>/dev/null && WG_RUNNING_AFTER_UNINSTALL=1 || true
+        else
+            systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}" && WG_RUNNING_AFTER_UNINSTALL=1 || true
+        fi
 
-        if [[ ${WG_RUNNING} -eq 0 ]]; then
-            echo "WireGuard falló al desinstalarse correctamente."
+        if [[ ${WG_RUNNING_AFTER_UNINSTALL} -eq 1 ]]; then
+            echo -e "${RED}WireGuard falló al desinstalarse completamente. Puede que necesites una limpieza manual.${NC}"
             exit 1
         else
-            echo "WireGuard desinstalado exitosamente."
+            echo -e "${GREEN}WireGuard desinstalado exitosamente.${NC}"
             exit 0
         fi
     else
         echo ""
-        echo "¡Eliminación abortada!"
+        echo -e "${GREEN}¡Eliminación abortada!${NC}"
     fi
 }
 
 function manageMenu() {
-    echo "¡Bienvenido a WireGuard-install!"
+    echo -e "${GREEN}¡Bienvenido a WireGuard-install!${NC}"
     echo "El repositorio de git está disponible en: https://github.com/Cormaxs/wireguard-install-update"
     echo ""
     echo "Parece que WireGuard ya está instalado."
     echo ""
     echo "¿Qué quieres hacer?"
-    echo "    1) Añadir un nuevo usuario"
-    echo "    2) Listar todos los usuarios"
-    echo "    3) Revocar un usuario existente"
-    echo "    4) Desinstalar WireGuard"
-    echo "    5) Salir"
+    echo "   1) Añadir un nuevo usuario"
+    echo "   2) Listar todos los usuarios"
+    echo "   3) Revocar un usuario existente"
+    echo "   4) Desinstalar WireGuard"
+    echo "   5) Salir"
+    local MENU_OPTION
     until [[ ${MENU_OPTION} =~ ^[1-5]$ ]]; do
         read -rp "Selecciona una opción [1-5]: " MENU_OPTION
     done
@@ -686,6 +722,7 @@ function manageMenu() {
         uninstallWg
         ;;
     5)
+        echo -e "${GREEN}Saliendo... ¡Hasta pronto!${NC}"
         exit 0
         ;;
     esac

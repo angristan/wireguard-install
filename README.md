@@ -1,7 +1,5 @@
 # Instalador de WireGuard
 
-![Lint](https://github.com/Cormaxs/wireguard-install/workflows/Lint/badge.svg)
-
 **Este proyecto es un script bash que busca configurar una VPN [WireGuard](https://www.wireguard.com/) en un servidor Linux de la forma más sencilla posible.**
 
 WireGuard es una VPN punto a punto que puede usarse de diferentes maneras. En este contexto, nos referimos a una VPN como: el cliente reenvía todo su tráfico al servidor a través de un túnel cifrado.
