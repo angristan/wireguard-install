@@ -389,7 +389,9 @@ ALLOWED_IPS=${ALLOWED_IPS}" >/etc/wireguard/params
 Address = ${SERVER_WG_IPV4}/24,${SERVER_WG_IPV6}/64
 ListenPort = ${SERVER_PORT}
 PrivateKey = ${SERVER_PRIV_KEY}
-MTU = 1420" >"/etc/wireguard/${SERVER_WG_NIC}.conf" # <-- OPTIMIZACIÓN: MTU para el servidor
+MTU = 1420
+# OPTIMIZACIÓN: Mantener el túnel activo para reducir latencia inicial
+PersistentKeepalive = 25" >"/etc/wireguard/${SERVER_WG_NIC}.conf"
 
 	# Establece permisos para el archivo de configuración del servidor
 	chmod 600 "/etc/wireguard/${SERVER_WG_NIC}.conf"
@@ -414,9 +416,17 @@ PostDown = ip6tables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT
 PostDown = ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
 	fi
 
-	# Habilita el enrutamiento en el servidor
+	# Habilita el enrutamiento en el servidor y añade optimizaciones del kernel
 	echo "net.ipv4.ip_forward = 1
-net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
+net.ipv6.conf.all.forwarding = 1
+# OPTIMIZACIÓN: Buffers de red para mejor rendimiento en alta velocidad
+net.core.rmem_default = 262144
+net.core.rmem_max = 8388608
+net.core.wmem_default = 262144
+net.core.wmem_max = 8388608
+# OPTIMIZACIÓN: Habilitar BBR para mejor control de congestión
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr" >/etc/sysctl.d/wg.conf
 
 	if [[ ${OS} == 'alpine' ]]; then
 		sysctl -p /etc/sysctl.d/wg.conf
@@ -425,7 +435,7 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 		rc-service "wg-quick.${SERVER_WG_NIC}" start
 		rc-update add "wg-quick.${SERVER_WG_NIC}"
 	else
-		sysctl --system
+		sysctl --system # Aplica los cambios de sysctl inmediatamente
 
 		systemctl start "wg-quick@${SERVER_WG_NIC}"
 		systemctl enable "wg-quick@${SERVER_WG_NIC}"
@@ -552,7 +562,9 @@ function newClient() {
 	echo "[Interface]
 PrivateKey = ${CLIENT_PRIV_KEY}
 Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
-MTU = 1420 # <-- OPTIMIZACIÓN: MTU para el cliente
+MTU = 1420
+# OPTIMIZACIÓN: Mantener el túnel activo para reducir latencia inicial
+PersistentKeepalive = 25
 ${DNS_STRING}
 
 [Peer]
