@@ -150,8 +150,9 @@ function installQuestions() {
 		read -rp "Server WireGuard IPv4: " -e -i 10.66.66.1 SERVER_WG_IPV4
 	done
 
+	DEFAULT_IPV6=$(echo "`date +%s%N``cat /etc/machine-id`" | sha256sum | cut -c 55-65 | sed 's/../&\n/g' | xargs printf "fd%s:%s%s:%s%s::1")
 	until [[ ${SERVER_WG_IPV6} =~ ^([a-f0-9]{1,4}:){3,4}: ]]; do
-		read -rp "Server WireGuard IPv6: " -e -i fd42:42:42::1 SERVER_WG_IPV6
+		read -rp "Server WireGuard IPv6: " -e -i "${DEFAULT_IPV6}" SERVER_WG_IPV6
 	done
 
 	# Generate random number within private ports range
