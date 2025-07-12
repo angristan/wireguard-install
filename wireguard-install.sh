@@ -400,6 +400,11 @@ PrivateKey = ${CLIENT_PRIV_KEY}
 Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
 DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
 
+# Uncomment the next line to set a custom MTU
+# This might impact performance, so use it only if you know what you are doing
+# See https://github.com/nitred/nr-wg-mtu-finder to find your optimal MTU
+# MTU = 1420
+
 [Peer]
 PublicKey = ${SERVER_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
