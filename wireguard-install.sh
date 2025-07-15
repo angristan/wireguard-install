@@ -6,6 +6,13 @@
 RED='\033[0;31m'
 ORANGE='\033[0;33m'
 GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+WHITE='\033[1;37m'
+BOLD='\033[1m'
+DIM='\033[2m'
 NC='\033[0m'
 
 function isRoot() {
@@ -120,13 +127,26 @@ function initialCheck() {
 	checkVirt
 }
 
+function printHeader() {
+	clear
+	echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+	echo -e "${BLUE}║${BOLD}                    WireGuard Installer                     ${BLUE}║${NC}"
+	echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+	echo -e "${DIM}https://github.com/angristan/wireguard-install${NC}\n"
+}
+
+function printSection() {
+	echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo -e "${PURPLE}${1}${NC}"
+	echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+}
+
 function installQuestions() {
-	echo "Welcome to the WireGuard installer!"
-	echo "The git repository is available at: https://github.com/angristan/wireguard-install"
-	echo ""
-	echo "I need to ask you a few questions before starting the setup."
-	echo "You can keep the default options and just press enter if you are ok with them."
-	echo ""
+	printHeader
+	printSection "Initial Configuration"
+	
+	echo -e "${WHITE}Please answer the following questions to configure your WireGuard server.${NC}"
+	echo -e "${DIM}Press Enter to accept the default values shown in brackets.${NC}\n"
 
 	# Detect public IPv4 or IPv6 address and pre-fill for the user
 	SERVER_PUB_IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | awk '{print $1}' | head -1)
@@ -134,7 +154,9 @@ function installQuestions() {
 		# Detect public IPv6 address
 		SERVER_PUB_IP=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | head -1)
 	fi
-	read -rp "IPv4 or IPv6 public address: " -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
+	echo -e "${YELLOW}► Server Public Address${NC}"
+	read -rp "$(echo -e ${CYAN}IPv4 or IPv6 [${WHITE}${SERVER_PUB_IP}${CYAN}]: ${NC})" -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
+	echo ""
 
 	# Detect public interface and pre-fill for the user
 	SERVER_NIC="$(ip -4 route ls | grep default | awk '/dev/ {for (i=1; i<=NF; i++) if ($i == "dev") print $(i+1)}' | head -1)"
@@ -179,10 +201,11 @@ function installQuestions() {
 		fi
 	done
 
-	echo ""
-	echo "Okay, that was all I needed. We are ready to setup your WireGuard server now."
-	echo "You will be able to generate a client at the end of the installation."
-	read -n1 -r -p "Press any key to continue..."
+	printSection "Configuration Complete"
+	echo -e "${GREEN}✓${WHITE} All required information has been collected${NC}"
+	echo -e "${GREEN}✓${WHITE} Ready to install and configure WireGuard${NC}\n"
+	echo -e "${YELLOW}Press any key to begin installation...${NC}"
+	read -n1 -r
 }
 
 function installWireGuard() {
@@ -332,21 +355,32 @@ function newClient() {
 	fi
 	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
 
-	echo ""
-	echo "Client configuration"
-	echo ""
-	echo "The client name must consist of alphanumeric character(s). It may also include underscores or dashes and can't exceed 15 chars."
+	clear
+	printHeader
+	printSection "New Client Configuration"
+	
+	echo -e "${WHITE}Please configure the new client connection.${NC}"
+	echo -e "${DIM}The client name must consist of alphanumeric characters, underscores, or dashes (max 15 chars).${NC}\n"
 
 	until [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ && ${CLIENT_EXISTS} == '0' && ${#CLIENT_NAME} -lt 16 ]]; do
-		read -rp "Client name: " -e CLIENT_NAME
+		read -rp "$(echo -e ${YELLOW}► Client Name${NC} [a-zA-Z0-9_-]: ${CYAN})" -e CLIENT_NAME
 		CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
-		if [[ ${CLIENT_EXISTS} != 0 ]]; then
-			echo ""
-			echo -e "${ORANGE}A client with the specified name was already created, please choose another name.${NC}"
-			echo ""
+		if [[ ${CLIENT_EXISTS} != '0' ]]; then
+			echo -e "\n${RED}✗${WHITE} A client with this name already exists${NC}"
+			echo -e "${ORANGE}Please choose another name${NC}\n"
+		elif [[ "${CLIENT_NAME}" == *" "* ]]; then
+			echo -e "\n${RED}✗${WHITE} Client name contains spaces${NC}"
+			echo -e "${ORANGE}Please remove all spaces from the name${NC}\n"
+		elif [[ "${CLIENT_NAME}" == *"'"* ]]; then
+			echo -e "\n${RED}✗${WHITE} Client name contains single quotes${NC}"
+			echo -e "${ORANGE}Please remove all single quotes from the name${NC}\n"
+		elif [[ ! ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ ]]; then
+			echo -e "\n${RED}✗${WHITE} Client name contains invalid characters${NC}"
+			echo -e "${ORANGE}Please use only letters, numbers, underscores, and dashes${NC}\n"
 		fi
 	done
+	echo -e "${NC}"
 
 	for DOT_IP in {2..254}; do
 		DOT_EXISTS=$(grep -c "${SERVER_WG_IPV4::-1}${DOT_IP}" "/etc/wireguard/${SERVER_WG_NIC}.conf")
@@ -363,27 +397,25 @@ function newClient() {
 
 	BASE_IP=$(echo "$SERVER_WG_IPV4" | awk -F '.' '{ print $1"."$2"."$3 }')
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
-		read -rp "Client WireGuard IPv4: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
+		read -rp "$(echo -e ${YELLOW}► IPv4 Configuration${NC}: ${CYAN}${BASE_IP}.${NC})" -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV4="${BASE_IP}.${DOT_IP}"
 		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4/32" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
 		if [[ ${IPV4_EXISTS} != 0 ]]; then
-			echo ""
-			echo -e "${ORANGE}A client with the specified IPv4 was already created, please choose another IPv4.${NC}"
-			echo ""
+			echo -e "${RED}✗${WHITE} This IPv4 is already assigned${NC}"
+			echo -e "${ORANGE}Please choose another address${NC}\n"
 		fi
 	done
 
 	BASE_IP=$(echo "$SERVER_WG_IPV6" | awk -F '::' '{ print $1 }')
 	until [[ ${IPV6_EXISTS} == '0' ]]; do
-		read -rp "Client WireGuard IPv6: ${BASE_IP}::" -e -i "${DOT_IP}" DOT_IP
+		read -rp "$(echo -e ${YELLOW}► IPv6 Configuration${NC}: ${CYAN}${BASE_IP}::${NC})" -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV6="${BASE_IP}::${DOT_IP}"
 		IPV6_EXISTS=$(grep -c "${CLIENT_WG_IPV6}/128" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
 		if [[ ${IPV6_EXISTS} != 0 ]]; then
-			echo ""
-			echo -e "${ORANGE}A client with the specified IPv6 was already created, please choose another IPv6.${NC}"
-			echo ""
+			echo -e "${RED}✗${WHITE} This IPv6 is already assigned${NC}"
+			echo -e "${ORANGE}Please choose another address${NC}\n"
 		fi
 	done
 
@@ -431,14 +463,23 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 }
 
 function listClients() {
+	printHeader
+	printSection "Current WireGuard Clients"
+	
 	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 	if [[ ${NUMBER_OF_CLIENTS} -eq 0 ]]; then
-		echo ""
-		echo "You have no existing clients!"
-		exit 1
+		echo -e "${RED}✗${WHITE} No clients found${NC}"
+		echo -e "\n${YELLOW}Press any key to return to menu...${NC}"
+		read -n1 -r
+		return 1
 	fi
 
-	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
+	echo -e "${GREEN}Found ${NUMBER_OF_CLIENTS} client(s):${NC}\n"
+	echo -e "${CYAN}ID  │  CLIENT NAME${NC}"
+	echo -e "${CYAN}────┼─────────────${NC}"
+	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') ' | sed 's/^/  /'
+	echo -e "\n${YELLOW}Press any key to return to menu...${NC}"
+	read -n1 -r
 }
 
 function revokeClient() {
@@ -477,7 +518,7 @@ function revokeClient() {
 function uninstallWg() {
 	echo ""
 	echo -e "\n${RED}WARNING: This will uninstall WireGuard and remove all the configuration files!${NC}"
-	echo -e "${ORANGE}Please backup the /etc/wireguard directory if you want to keep your configuration files.\n${NC}"
+	echo -e "${ORANGE}Please backup the /etc/wireguard directory and any client configs if you want to keep your configuration files.\n${NC}"
 	read -rp "Do you really want to remove WireGuard? [y/n]: " -e REMOVE
 	REMOVE=${REMOVE:-n}
 	if [[ $REMOVE == 'y' ]]; then
@@ -493,6 +534,16 @@ function uninstallWg() {
 			systemctl disable "wg-quick@${SERVER_WG_NIC}"
 		fi
 
+		# Remove client configuration files
+		echo -e "${YELLOW}► Removing client configuration files...${NC}"
+		if [[ -f "/etc/wireguard/${SERVER_WG_NIC}.conf" ]]; then
+			CLIENTS=$(grep "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3)
+			for CLIENT in ${CLIENTS}; do
+				find /root /home -type f -name "${SERVER_WG_NIC}-client-${CLIENT}.conf" -delete 2>/dev/null
+			done
+		fi
+
+		# Remove WireGuard packages based on OS
 		if [[ ${OS} == 'ubuntu' ]]; then
 			apt-get remove -y wireguard wireguard-tools qrencode
 		elif [[ ${OS} == 'debian' ]]; then
@@ -524,19 +575,16 @@ function uninstallWg() {
 		if [[ ${OS} == 'alpine' ]]; then
 			rc-service --quiet "wg-quick.${SERVER_WG_NIC}" status &>/dev/null
 		else
-			# Reload sysctl
 			sysctl --system
-
-			# Check if WireGuard is running
 			systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
 		fi
 		WG_RUNNING=$?
 
 		if [[ ${WG_RUNNING} -eq 0 ]]; then
-			echo "WireGuard failed to uninstall properly."
+			echo -e "${RED}WireGuard failed to uninstall properly.${NC}"
 			exit 1
 		else
-			echo "WireGuard uninstalled successfully."
+			echo -e "${GREEN}WireGuard and all client configurations uninstalled successfully.${NC}"
 			exit 0
 		fi
 	else
@@ -545,20 +593,68 @@ function uninstallWg() {
 	fi
 }
 
+function updateWireGuard() {
+	printSection "Checking for Updates"
+	
+	echo -e "${YELLOW} Checking for system updates...${NC}"
+	
+	if [[ ${OS} == 'ubuntu' ]] || [[ ${OS} == 'debian' ]]; then
+		apt-get update
+		echo -e "${GREEN}✓${WHITE} Updating WireGuard and dependencies...${NC}"
+		apt-get upgrade -y wireguard wireguard-tools iptables resolvconf qrencode
+		
+	elif [[ ${OS} == 'fedora' ]]; then
+		dnf check-update
+		echo -e "${GREEN}✓${WHITE} Updating WireGuard and dependencies...${NC}"
+		dnf upgrade -y wireguard-tools iptables qrencode
+		
+	elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
+		yum check-update
+		echo -e "${GREEN}✓${WHITE} Updating WireGuard and dependencies...${NC}"
+		yum update -y wireguard-tools iptables qrencode
+		
+	elif [[ ${OS} == 'oracle' ]]; then
+		dnf check-update
+		echo -e "${GREEN}✓${WHITE} Updating WireGuard and dependencies...${NC}"
+		dnf upgrade -y wireguard-tools iptables qrencode
+		
+	elif [[ ${OS} == 'arch' ]]; then
+		echo -e "${GREEN}✓${WHITE} Updating WireGuard and dependencies...${NC}"
+		pacman -Syu --noconfirm wireguard-tools qrencode
+	fi
+	
+	# Restart WireGuard service to apply any updates
+	echo -e "${YELLOW}► Restarting WireGuard service...${NC}"
+	systemctl restart "wg-quick@${SERVER_WG_NIC}"
+	
+	# Check if service is running properly after update
+	if systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"; then
+		echo -e "${GREEN}✓${WHITE} WireGuard updated and running successfully${NC}"
+	else
+		echo -e "${RED}✗${WHITE} WireGuard service failed to start after update${NC}"
+		echo -e "${ORANGE}Please check: systemctl status wg-quick@${SERVER_WG_NIC}${NC}"
+	fi
+	
+	echo -e "\n${YELLOW}Press any key to return to menu...${NC}"
+	read -n1 -r
+}
+
 function manageMenu() {
-	echo "Welcome to WireGuard-install!"
-	echo "The git repository is available at: https://github.com/angristan/wireguard-install"
-	echo ""
-	echo "It looks like WireGuard is already installed."
-	echo ""
-	echo "What do you want to do?"
-	echo "   1) Add a new user"
-	echo "   2) List all users"
-	echo "   3) Revoke existing user"
-	echo "   4) Uninstall WireGuard"
-	echo "   5) Exit"
-	until [[ ${MENU_OPTION} =~ ^[1-5]$ ]]; do
-		read -rp "Select an option [1-5]: " MENU_OPTION
+	printHeader
+	
+	echo -e "${GREEN}✓${WHITE} WireGuard is installed and running${NC}\n"
+	
+	echo -e "${YELLOW}Select an option:${NC}"
+	echo -e "${WHITE}────────────────${NC}"
+	echo -e "${CYAN}1)${NC} ${WHITE}Add a new user${NC}"
+	echo -e "${CYAN}2)${NC} ${WHITE}List all users${NC}"
+	echo -e "${CYAN}3)${NC} ${WHITE}Revoke existing user${NC}"
+	echo -e "${CYAN}4)${NC} ${WHITE}Check for updates${NC}"
+	echo -e "${RED}5)${NC} ${WHITE}Uninstall WireGuard${NC}"
+	echo -e "${PURPLE}6)${NC} ${WHITE}Exit${NC}\n"
+
+	until [[ ${MENU_OPTION} =~ ^[1-6]$ ]]; do
+		read -rp "$(echo -e ${YELLOW}Select an option [1-6]:${NC} )" MENU_OPTION
 	done
 	case "${MENU_OPTION}" in
 	1)
@@ -571,9 +667,12 @@ function manageMenu() {
 		revokeClient
 		;;
 	4)
-		uninstallWg
+		updateWireGuard
 		;;
 	5)
+		uninstallWg
+		;;
+	6)
 		exit 0
 		;;
 	esac
