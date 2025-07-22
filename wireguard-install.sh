@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Secure WireGuard server installer
 # https://github.com/angristan/wireguard-install
