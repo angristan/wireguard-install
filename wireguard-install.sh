@@ -265,10 +265,7 @@ function installWireGuard() {
 		pacman -S --needed --noconfirm wireguard-tools qrencode
 	elif [[ ${OS} == 'alpine' ]]; then
 		apk update
-		apk add wireguard-tools iptables build-base libpng-dev
-		curl -O https://fukuchi.org/works/qrencode/qrencode-4.1.1.tar.gz
-		tar xf qrencode-4.1.1.tar.gz
-		(cd qrencode-4.1.1 || exit && ./configure && make && make install && ldconfig)
+		apk add wireguard-tools iptables libqrencode-tools
 	fi
 
 	# Make sure the directory exists (this does not seem the be the case on fedora)
@@ -554,6 +551,11 @@ PrivateKey = ${CLIENT_PRIV_KEY}
 Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
 DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
 
+# Uncomment the next line to set a custom MTU
+# This might impact performance, so use it only if you know what you are doing
+# See https://github.com/nitred/nr-wg-mtu-finder to find your optimal MTU
+# MTU = 1420
+
 [Peer]
 PublicKey = ${SERVER_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
@@ -665,7 +667,7 @@ function uninstallWg() {
 		elif [[ ${OS} == 'alpine' ]]; then
 			(cd qrencode-4.1.1 || exit && make uninstall)
 			rm -rf qrencode-* || exit
-			apk del wireguard-tools build-base libpng-dev
+			apk del wireguard-tools libqrencode libqrencode-tools
 		fi
 
 		rm -rf /etc/wireguard
