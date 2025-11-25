@@ -18,6 +18,7 @@ Supported distributions:
 
 - AlmaLinux >= 8
 - Alpine Linux
+- Amazon Linux 2 and 2023
 - Arch Linux
 - CentOS Stream >= 8
 - Debian >= 10
