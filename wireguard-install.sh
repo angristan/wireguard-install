@@ -16,32 +16,22 @@ function isRoot() {
 }
 
 function checkVirt() {
-	function openvzErr() {
+	if command -v virt-what &>/dev/null; then
+		VIRT=$(virt-what)
+	else
+		VIRT=$(systemd-detect-virt)
+	fi
+	if [[ ${VIRT} == "openvz" ]]; then
 		echo "OpenVZ is not supported"
 		exit 1
-	}
-	function lxcErr() {
+	fi
+	if [[ ${VIRT} == "lxc" ]]; then
 		echo "LXC is not supported (yet)."
 		echo "WireGuard can technically run in an LXC container,"
 		echo "but the kernel module has to be installed on the host,"
 		echo "the container has to be run with some specific parameters"
 		echo "and only the tools need to be installed in the container."
 		exit 1
-	}
-	if command -v virt-what &>/dev/null; then
-		if [ "$(virt-what)" == "openvz" ]; then
-			openvzErr
-		fi
-		if [ "$(virt-what)" == "lxc" ]; then
-			lxcErr
-		fi
-	else
-		if [ "$(systemd-detect-virt)" == "openvz" ]; then
-			openvzErr
-		fi
-		if [ "$(systemd-detect-virt)" == "lxc" ]; then
-			lxcErr
-		fi
 	fi
 }
 
@@ -493,9 +483,7 @@ function uninstallWg() {
 			systemctl disable "wg-quick@${SERVER_WG_NIC}"
 		fi
 
-		if [[ ${OS} == 'ubuntu' ]]; then
-			apt-get remove -y wireguard wireguard-tools qrencode
-		elif [[ ${OS} == 'debian' ]]; then
+		if [[ ${OS} == 'ubuntu' ]] || [[ ${OS} == 'debian' ]]; then
 			apt-get remove -y wireguard wireguard-tools qrencode
 		elif [[ ${OS} == 'fedora' ]]; then
 			dnf remove -y --noautoremove wireguard-tools qrencode
