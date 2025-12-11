@@ -88,9 +88,10 @@ function checkOS() {
 
 function getHomeDirForClient() {
 	local CLIENT_NAME=$1
+	local HOME_DIR
 
 	if [ -z "${CLIENT_NAME}" ]; then
-		echo "Error: getHomeDirForClient() requires a client name as argument"
+		echo "Error: getHomeDirForClient() requires a client name as argument" >&2
 		exit 1
 	fi
 
@@ -111,7 +112,10 @@ function getHomeDirForClient() {
 		HOME_DIR="/root"
 	fi
 
-	echo "$HOME_DIR"
+	# Create the 'wg' directory inside the determined home directory
+	mkdir -p "${HOME_DIR}/wg"
+
+	echo "${HOME_DIR}/wg"
 }
 
 function initialCheck() {
@@ -344,6 +348,7 @@ function newClient() {
 	echo ""
 	echo "The client name must consist of alphanumeric character(s). It may also include underscores or dashes and can't exceed 15 chars."
 
+	CLIENT_NAME=""
 	until [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ && ${CLIENT_EXISTS} == '0' && ${#CLIENT_NAME} -lt 16 ]]; do
 		read -rp "Client name: " -e CLIENT_NAME
 		CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf")
@@ -365,10 +370,11 @@ function newClient() {
 	if [[ ${DOT_EXISTS} == '1' ]]; then
 		echo ""
 		echo "The subnet configured supports only 253 clients."
-		exit 1
+		return 1
 	fi
 
 	BASE_IP=$(echo "$SERVER_WG_IPV4" | awk -F '.' '{ print $1"."$2"."$3 }')
+	IPV4_EXISTS="1"
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
 		read -rp "Client WireGuard IPv4: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV4="${BASE_IP}.${DOT_IP}"
@@ -382,6 +388,7 @@ function newClient() {
 	done
 
 	BASE_IP=$(echo "$SERVER_WG_IPV6" | awk -F '::' '{ print $1 }')
+	IPV6_EXISTS="1"
 	until [[ ${IPV6_EXISTS} == '0' ]]; do
 		read -rp "Client WireGuard IPv6: ${BASE_IP}::" -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV6="${BASE_IP}::${DOT_IP}"
@@ -442,43 +449,54 @@ function listClients() {
 	if [[ ${NUMBER_OF_CLIENTS} -eq 0 ]]; then
 		echo ""
 		echo "You have no existing clients!"
-		exit 1
+		return 1
 	fi
 
 	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
 }
 
 function revokeClient() {
-	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
-	if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
-		echo ""
-		echo "You have no existing clients!"
-		exit 1
-	fi
-
-	echo ""
-	echo "Select the existing client you want to revoke"
-	grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
-	until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
-		if [[ ${CLIENT_NUMBER} == '1' ]]; then
-			read -rp "Select one client [1]: " CLIENT_NUMBER
-		else
-			read -rp "Select one client [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+	while true; do
+		NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+		if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
+			echo ""
+			echo "You have no existing clients!"
+			break
 		fi
+
+		echo ""
+		echo "Select the existing client you want to revoke"
+		grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | nl -s ') '
+		echo "0) Cancel"
+
+		CLIENT_NUMBER=""
+		until [[ ${CLIENT_NUMBER} =~ ^[0-9]+$ && ${CLIENT_NUMBER} -ge 0 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
+			if [[ ${NUMBER_OF_CLIENTS} == '1' ]]; then
+				read -rp "Select one client [1] or 0 to cancel: " CLIENT_NUMBER
+			else
+				read -rp "Select one client [1-${NUMBER_OF_CLIENTS}] or 0 to cancel: " CLIENT_NUMBER
+			fi
+		done
+
+		if [[ ${CLIENT_NUMBER} == '0' ]]; then
+			break
+		fi
+
+		# match the selected number to a client name
+		CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
+
+		# remove [Peer] block matching $CLIENT_NAME
+		sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/d" "/etc/wireguard/${SERVER_WG_NIC}.conf"
+
+		# remove generated client file
+		HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
+		rm -f "${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+
+		# restart wireguard to apply changes
+		wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
+
+		echo -e "${GREEN}Client ${CLIENT_NAME} revoked!${NC}"
 	done
-
-	# match the selected number to a client name
-	CLIENT_NAME=$(grep -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf" | cut -d ' ' -f 3 | sed -n "${CLIENT_NUMBER}"p)
-
-	# remove [Peer] block matching $CLIENT_NAME
-	sed -i "/^### Client ${CLIENT_NAME}\$/,/^$/d" "/etc/wireguard/${SERVER_WG_NIC}.conf"
-
-	# remove generated client file
-	HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
-	rm -f "${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
-
-	# restart wireguard to apply changes
-	wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
 }
 
 function uninstallWg() {
@@ -555,33 +573,46 @@ function manageMenu() {
 	echo "The git repository is available at: https://github.com/angristan/wireguard-install"
 	echo ""
 	echo "It looks like WireGuard is already installed."
-	echo ""
-	echo "What do you want to do?"
-	echo "   1) Add a new user"
-	echo "   2) List all users"
-	echo "   3) Revoke existing user"
-	echo "   4) Uninstall WireGuard"
-	echo "   5) Exit"
-	until [[ ${MENU_OPTION} =~ ^[1-5]$ ]]; do
-		read -rp "Select an option [1-5]: " MENU_OPTION
+
+	while true; do
+		echo ""
+		echo "What do you want to do?"
+		echo "   1) Add a new user"
+		echo "   2) List all users"
+		echo "   3) Revoke existing user"
+		echo "   4) Uninstall WireGuard"
+		echo "   5) Exit"
+
+		# Reset MENU_OPTION to ensure it asks every time
+		MENU_OPTION=""
+		until [[ ${MENU_OPTION} =~ ^[1-5]$ ]]; do
+			read -rp "Select an option [1-5]: " MENU_OPTION
+		done
+
+		case "${MENU_OPTION}" in
+		1)
+			newClient
+			;;
+		2)
+			listClients
+			;;
+		3)
+			revokeClient
+			;;
+		4)
+			uninstallWg
+			exit 0
+			;;
+		5)
+			exit 0
+			;;
+		esac
+
+		# Add a pause so the user can see the output of the previous command
+		echo ""
+		read -n 1 -s -r -p "Press any key to return to main menu..."
+		echo ""
 	done
-	case "${MENU_OPTION}" in
-	1)
-		newClient
-		;;
-	2)
-		listClients
-		;;
-	3)
-		revokeClient
-		;;
-	4)
-		uninstallWg
-		;;
-	5)
-		exit 0
-		;;
-	esac
 }
 
 # Check for root, virt, OS...
