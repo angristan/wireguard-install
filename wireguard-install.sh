@@ -8,6 +8,14 @@ ORANGE='\033[0;33m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
+function installPackages() {
+	if ! "$@"; then
+		echo -e "${RED}Failed to install packages.${NC}"
+		echo "Please check your internet connection and package sources."
+		exit 1
+	fi
+}
+
 function isRoot() {
 	if [ "${EUID}" -ne 0 ]; then
 		echo "You need to run this script as root"
@@ -16,32 +24,22 @@ function isRoot() {
 }
 
 function checkVirt() {
-	function openvzErr() {
+	if command -v virt-what &>/dev/null; then
+		VIRT=$(virt-what)
+	else
+		VIRT=$(systemd-detect-virt)
+	fi
+	if [[ ${VIRT} == "openvz" ]]; then
 		echo "OpenVZ is not supported"
 		exit 1
-	}
-	function lxcErr() {
+	fi
+	if [[ ${VIRT} == "lxc" ]]; then
 		echo "LXC is not supported (yet)."
 		echo "WireGuard can technically run in an LXC container,"
 		echo "but the kernel module has to be installed on the host,"
 		echo "the container has to be run with some specific parameters"
 		echo "and only the tools need to be installed in the container."
 		exit 1
-	}
-	if command -v virt-what &>/dev/null; then
-		if [ "$(virt-what)" == "openvz" ]; then
-			openvzErr
-		fi
-		if [ "$(virt-what)" == "lxc" ]; then
-			lxcErr
-		fi
-	else
-		if [ "$(systemd-detect-virt)" == "openvz" ]; then
-			openvzErr
-		fi
-		if [ "$(systemd-detect-virt)" == "lxc" ]; then
-			lxcErr
-		fi
 	fi
 }
 
@@ -78,7 +76,9 @@ function checkOS() {
 	elif [[ -e /etc/alpine-release ]]; then
 		OS=alpine
 		if ! command -v virt-what &>/dev/null; then
-			apk update && apk add virt-what
+			if ! (apk update && apk add virt-what); then
+				echo -e "${RED}Failed to install virt-what. Continuing without virtualization check.${NC}"
+			fi
 		fi
 	else
 		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle or Arch Linux system"
@@ -232,40 +232,47 @@ function installWireGuard() {
 	# Install WireGuard tools and module
 	if [[ ${OS} == 'ubuntu' ]] || [[ ${OS} == 'debian' && ${VERSION_ID} -gt 10 ]]; then
 		apt-get update
-		apt-get install -y wireguard iptables resolvconf qrencode
+		installPackages apt-get install -y wireguard iptables resolvconf qrencode
 	elif [[ ${OS} == 'debian' ]]; then
 		if ! grep -rqs "^deb .* buster-backports" /etc/apt/; then
 			echo "deb http://deb.debian.org/debian buster-backports main" >/etc/apt/sources.list.d/backports.list
 			apt-get update
 		fi
-		apt update
-		apt-get install -y iptables resolvconf qrencode
-		apt-get install -y -t buster-backports wireguard
+		apt-get update
+		installPackages apt-get install -y iptables resolvconf qrencode
+		installPackages apt-get install -y -t buster-backports wireguard
 	elif [[ ${OS} == 'fedora' ]]; then
 		if [[ ${VERSION_ID} -lt 32 ]]; then
-			dnf install -y dnf-plugins-core
+			installPackages dnf install -y dnf-plugins-core
 			dnf copr enable -y jdoss/wireguard
-			dnf install -y wireguard-dkms
+			installPackages dnf install -y wireguard-dkms
 		fi
-		dnf install -y wireguard-tools iptables qrencode
+		installPackages dnf install -y wireguard-tools iptables qrencode
 	elif [[ ${OS} == 'centos' ]] || [[ ${OS} == 'almalinux' ]] || [[ ${OS} == 'rocky' ]]; then
 		if [[ ${VERSION_ID} == 8* ]]; then
-			yum install -y epel-release elrepo-release
-			yum install -y kmod-wireguard
-			yum install -y qrencode # not available on release 9
+			installPackages yum install -y epel-release elrepo-release
+			installPackages yum install -y kmod-wireguard
+			yum install -y qrencode || true # not available on release 9
 		fi
-		yum install -y wireguard-tools iptables
+		installPackages yum install -y wireguard-tools iptables
 	elif [[ ${OS} == 'oracle' ]]; then
-		dnf install -y oraclelinux-developer-release-el8
+		installPackages dnf install -y oraclelinux-developer-release-el8
 		dnf config-manager --disable -y ol8_developer
 		dnf config-manager --enable -y ol8_developer_UEKR6
 		dnf config-manager --save -y --setopt=ol8_developer_UEKR6.includepkgs='wireguard-tools*'
-		dnf install -y wireguard-tools qrencode iptables
+		installPackages dnf install -y wireguard-tools qrencode iptables
 	elif [[ ${OS} == 'arch' ]]; then
-		pacman -S --needed --noconfirm wireguard-tools qrencode
+		installPackages pacman -S --needed --noconfirm wireguard-tools qrencode
 	elif [[ ${OS} == 'alpine' ]]; then
 		apk update
-		apk add wireguard-tools iptables libqrencode-tools
+		installPackages apk add wireguard-tools iptables libqrencode-tools
+	fi
+
+	# Verify WireGuard installation
+	if ! command -v wg &>/dev/null; then
+		echo -e "${RED}WireGuard installation failed. The 'wg' command was not found.${NC}"
+		echo "Please check the installation output above for errors."
+		exit 1
 	fi
 
 	# Make sure the directory exists (this does not seem the be the case on fedora)
@@ -645,9 +652,7 @@ function uninstallWg() {
 			systemctl disable "wg-quick@${SERVER_WG_NIC}"
 		fi
 
-		if [[ ${OS} == 'ubuntu' ]]; then
-			apt-get remove -y wireguard wireguard-tools qrencode
-		elif [[ ${OS} == 'debian' ]]; then
+		if [[ ${OS} == 'ubuntu' ]] || [[ ${OS} == 'debian' ]]; then
 			apt-get remove -y wireguard wireguard-tools qrencode
 		elif [[ ${OS} == 'fedora' ]]; then
 			dnf remove -y --noautoremove wireguard-tools qrencode

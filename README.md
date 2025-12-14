@@ -50,7 +50,9 @@ I recommend these cheap cloud providers for your VPN server:
 
 ## Contributing
 
-## Discuss changes
+Contributions are welcome! Here's how you can help:
+
+### Discuss changes
 
 Please open an issue before submitting a PR if you want to discuss a change, especially if it's a big one.
 
