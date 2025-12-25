@@ -286,6 +286,11 @@ PostDown = ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE" >
 	echo "net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 
+	if [[ ${OS} == 'fedora' ]]; then
+		chmod -v 700 /etc/wireguard
+		chmod -v 600 /etc/wireguard/*
+	fi
+
 	if [[ ${OS} == 'alpine' ]]; then
 		sysctl -p /etc/sysctl.d/wg.conf
 		rc-update add sysctl
