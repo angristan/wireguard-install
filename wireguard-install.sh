@@ -555,6 +555,62 @@ function uninstallWg() {
 	fi
 }
 
+function fixIptablesRules() {
+	echo ""
+	echo "Fixing iptables rules for WireGuard..."
+	echo ""
+	
+	# Check if WireGuard is running
+	if [[ ${OS} == 'alpine' ]]; then
+		rc-service --quiet "wg-quick.${SERVER_WG_NIC}" status
+	else
+		systemctl is-active --quiet "wg-quick@${SERVER_WG_NIC}"
+	fi
+	WG_RUNNING=$?
+	
+	if [[ ${WG_RUNNING} -ne 0 ]]; then
+		echo -e "${RED}WireGuard is not running. Please start WireGuard first.${NC}"
+		echo -e "${ORANGE}You can start it with: systemctl start wg-quick@${SERVER_WG_NIC}${NC}"
+		return 1
+	fi
+	
+	# Clear existing iptables rules for WireGuard
+	echo "Clearing existing iptables rules..."
+	iptables -D INPUT -p udp --dport ${SERVER_PORT} -j ACCEPT 2>/dev/null
+	iptables -D FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEPT 2>/dev/null
+	iptables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT 2>/dev/null
+	iptables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE 2>/dev/null
+	ip6tables -D FORWARD -i ${SERVER_WG_NIC} -j ACCEPT 2>/dev/null
+	ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE 2>/dev/null
+	
+	# Add new iptables rules
+	echo "Adding new iptables rules..."
+	iptables -I INPUT -p udp --dport ${SERVER_PORT} -j ACCEPT
+	iptables -I FORWARD -i ${SERVER_PUB_NIC} -o ${SERVER_WG_NIC} -j ACCEPT
+	iptables -I FORWARD -i ${SERVER_WG_NIC} -j ACCEPT
+	iptables -t nat -A POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE
+	ip6tables -I FORWARD -i ${SERVER_WG_NIC} -j ACCEPT
+	ip6tables -t nat -A POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE
+	
+	# Save iptables rules if iptables-persistent is available
+	if command -v iptables-save &>/dev/null; then
+		if [[ -d /etc/iptables ]]; then
+			iptables-save > /etc/iptables/rules.v4
+			ip6tables-save > /etc/iptables/rules.v6
+			echo -e "${GREEN}Iptables rules saved to /etc/iptables/rules.v4 and /etc/iptables/rules.v6${NC}"
+		elif command -v netfilter-persistent &>/dev/null; then
+			netfilter-persistent save
+			echo -e "${GREEN}Iptables rules saved using netfilter-persistent${NC}"
+		else
+			echo -e "${ORANGE}Note: iptables rules are not persistent. They will be lost on reboot.${NC}"
+			echo -e "${ORANGE}Consider installing iptables-persistent: apt-get install iptables-persistent${NC}"
+		fi
+	fi
+	
+	echo -e "${GREEN}Iptables rules have been fixed successfully!${NC}"
+	echo -e "${GREEN}WireGuard should now work properly with the correct routing rules.${NC}"
+}
+
 function manageMenu() {
 	echo "Welcome to WireGuard-install!"
 	echo "The git repository is available at: https://github.com/angristan/wireguard-install"
@@ -566,9 +622,10 @@ function manageMenu() {
 	echo "   2) List all users"
 	echo "   3) Revoke existing user"
 	echo "   4) Uninstall WireGuard"
-	echo "   5) Exit"
-	until [[ ${MENU_OPTION} =~ ^[1-5]$ ]]; do
-		read -rp "Select an option [1-5]: " MENU_OPTION
+	echo "   5) Fix iptables rules"
+	echo "   6) Exit"
+	until [[ ${MENU_OPTION} =~ ^[1-6]$ ]]; do
+		read -rp "Select an option [1-6]: " MENU_OPTION
 	done
 	case "${MENU_OPTION}" in
 	1)
@@ -584,6 +641,9 @@ function manageMenu() {
 		uninstallWg
 		;;
 	5)
+		fixIptablesRules
+		;;
+	6)
 		exit 0
 		;;
 	esac
