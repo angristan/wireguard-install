@@ -132,7 +132,7 @@ function installQuestions() {
 	SERVER_PUB_IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | awk '{print $1}' | head -1)
 	if [[ -z ${SERVER_PUB_IP} ]]; then
 		# Detect public IPv6 address
-		SERVER_PUB_IP=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | head -1)
+		SERVER_PUB_IP=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | awk '{print $1}' | head -1)
 	fi
 	read -rp "IPv4 or IPv6 public address: " -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
 
@@ -177,6 +177,38 @@ function installQuestions() {
 		if [[ ${ALLOWED_IPS} == "" ]]; then
 			ALLOWED_IPS="0.0.0.0/0,::/0"
 		fi
+	done
+
+	# Default client MTU (stored in /etc/wireguard/params)
+	# 1280 is a safe default; 0 means "auto/unset" (do not write MTU line into client config).
+	while true; do
+		read -rp "Default client MTU [1280] (0 for automatic/unset): " MTU_INPUT
+		MTU_INPUT="${MTU_INPUT:-1280}"
+		if [[ ${MTU_INPUT} =~ ^[0-9]+$ ]] && { [ "${MTU_INPUT}" -eq 0 ] || ( [ "${MTU_INPUT}" -ge 576 ] && [ "${MTU_INPUT}" -le 1500 ] ); }; then
+			if [[ ${MTU_INPUT} -eq 0 ]]; then
+				CLIENT_MTU=""
+			else
+				CLIENT_MTU="${MTU_INPUT}"
+			fi
+			break
+		fi
+		echo -e "${ORANGE}Invalid MTU. Enter 576-1500, 0 for automatic/unset, or press Enter for 1280.${NC}"
+	done
+
+	# Default PersistentKeepalive (stored in /etc/wireguard/params)
+	# 25 is a common NAT-friendly default; 0 means "disabled/unset" (do not write line into client config).
+	while true; do
+		read -rp "Default PersistentKeepalive seconds [25] (0 to disable/unset): " PKA_INPUT
+		PKA_INPUT="${PKA_INPUT:-25}"
+		if [[ ${PKA_INPUT} =~ ^[0-9]+$ ]] && [ "${PKA_INPUT}" -ge 0 ] && [ "${PKA_INPUT}" -le 65535 ]; then
+			if [[ ${PKA_INPUT} -eq 0 ]]; then
+				CLIENT_PERSISTENT_KEEPALIVE=""
+			else
+				CLIENT_PERSISTENT_KEEPALIVE="${PKA_INPUT}"
+			fi
+			break
+		fi
+		echo -e "${ORANGE}Invalid value. Enter 1-65535, 0 to disable/unset, or press Enter for 25.${NC}"
 	done
 
 	echo ""
@@ -254,7 +286,9 @@ SERVER_PRIV_KEY=${SERVER_PRIV_KEY}
 SERVER_PUB_KEY=${SERVER_PUB_KEY}
 CLIENT_DNS_1=${CLIENT_DNS_1}
 CLIENT_DNS_2=${CLIENT_DNS_2}
-ALLOWED_IPS=${ALLOWED_IPS}" >/etc/wireguard/params
+ALLOWED_IPS=${ALLOWED_IPS}
+CLIENT_MTU=${CLIENT_MTU}
+CLIENT_PERSISTENT_KEEPALIVE=${CLIENT_PERSISTENT_KEEPALIVE}" >/etc/wireguard/params
 
 	# Add server interface
 	echo "[Interface]
@@ -399,6 +433,45 @@ function newClient() {
 		fi
 	done
 
+	# Per-client MTU / Keepalive with install-time defaults.
+	# If user presses Enter, it uses whatever was selected during installation (stored in /etc/wireguard/params).
+	CLIENT_MTU_LOCAL="${CLIENT_MTU-}"
+	CLIENT_PKA_LOCAL="${CLIENT_PERSISTENT_KEEPALIVE-}"
+
+	while true; do
+		DEFAULT_MTU_DISPLAY="${CLIENT_MTU_LOCAL:-auto/unset}"
+		read -rp "Client MTU (blank for default: ${DEFAULT_MTU_DISPLAY}; 0 for automatic/unset): " MTU_INPUT
+		if [[ -z ${MTU_INPUT} ]]; then
+			break
+		fi
+		if [[ ${MTU_INPUT} =~ ^[0-9]+$ ]] && { [ "${MTU_INPUT}" -eq 0 ] || ( [ "${MTU_INPUT}" -ge 576 ] && [ "${MTU_INPUT}" -le 1500 ] ); }; then
+			if [[ ${MTU_INPUT} -eq 0 ]]; then
+				CLIENT_MTU_LOCAL=""
+			else
+				CLIENT_MTU_LOCAL="${MTU_INPUT}"
+			fi
+			break
+		fi
+		echo -e "${ORANGE}Invalid MTU. Enter 576-1500, 0 for automatic/unset, or leave blank.${NC}"
+	done
+
+	while true; do
+		DEFAULT_PKA_DISPLAY="${CLIENT_PKA_LOCAL:-off/unset}"
+		read -rp "PersistentKeepalive seconds (blank for default: ${DEFAULT_PKA_DISPLAY}; 0 to disable/unset): " PKA_INPUT
+		if [[ -z ${PKA_INPUT} ]]; then
+			break
+		fi
+		if [[ ${PKA_INPUT} =~ ^[0-9]+$ ]] && [ "${PKA_INPUT}" -ge 0 ] && [ "${PKA_INPUT}" -le 65535 ]; then
+			if [[ ${PKA_INPUT} -eq 0 ]]; then
+				CLIENT_PKA_LOCAL=""
+			else
+				CLIENT_PKA_LOCAL="${PKA_INPUT}"
+			fi
+			break
+		fi
+		echo -e "${ORANGE}Invalid value. Enter 1-65535, 0 to disable/unset, or leave blank.${NC}"
+	done
+
 	# Generate key pair for the client
 	CLIENT_PRIV_KEY=$(wg genkey)
 	CLIENT_PUB_KEY=$(echo "${CLIENT_PRIV_KEY}" | wg pubkey)
@@ -406,22 +479,30 @@ function newClient() {
 
 	HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
 
+	# Optional lines for client config
+	CLIENT_MTU_LINE=""
+	if [[ -n ${CLIENT_MTU_LOCAL} ]]; then
+		CLIENT_MTU_LINE="MTU = ${CLIENT_MTU_LOCAL}"
+	fi
+
+	CLIENT_PERSISTENT_KEEPALIVE_LINE=""
+	if [[ -n ${CLIENT_PKA_LOCAL} ]]; then
+		CLIENT_PERSISTENT_KEEPALIVE_LINE="PersistentKeepalive = ${CLIENT_PKA_LOCAL}"
+	fi
+
 	# Create client file and add the server as a peer
 	echo "[Interface]
 PrivateKey = ${CLIENT_PRIV_KEY}
 Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
 DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
-
-# Uncomment the next line to set a custom MTU
-# This might impact performance, so use it only if you know what you are doing
-# See https://github.com/nitred/nr-wg-mtu-finder to find your optimal MTU
-# MTU = 1420
+${CLIENT_MTU_LINE}
 
 [Peer]
 PublicKey = ${SERVER_PUB_KEY}
 PresharedKey = ${CLIENT_PRE_SHARED_KEY}
 Endpoint = ${ENDPOINT}
-AllowedIPs = ${ALLOWED_IPS}" >"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+AllowedIPs = ${ALLOWED_IPS}
+${CLIENT_PERSISTENT_KEEPALIVE_LINE}" >"${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 
 	# Add the client as a peer to the server
 	echo -e "\n### Client ${CLIENT_NAME}
@@ -595,6 +676,16 @@ initialCheck
 # Check if WireGuard is already installed and load params
 if [[ -e /etc/wireguard/params ]]; then
 	source /etc/wireguard/params
+
+	# Backward compatible defaults (only if the variables were never stored in params).
+	# This keeps old installs working without requiring reinstall.
+	if [[ -z ${CLIENT_MTU+x} ]]; then
+		CLIENT_MTU=""
+	fi
+	if [[ -z ${CLIENT_PERSISTENT_KEEPALIVE+x} ]]; then
+		CLIENT_PERSISTENT_KEEPALIVE=""
+	fi
+
 	manageMenu
 else
 	installWireGuard
