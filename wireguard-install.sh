@@ -184,7 +184,7 @@ function installQuestions() {
 	while true; do
 		read -rp "Default client MTU [1280] (0 for automatic/unset): " MTU_INPUT
 		MTU_INPUT="${MTU_INPUT:-1280}"
-		if [[ ${MTU_INPUT} =~ ^[0-9]+$ ]] && { [ "${MTU_INPUT}" -eq 0 ] || ( [ "${MTU_INPUT}" -ge 576 ] && [ "${MTU_INPUT}" -le 1500 ] ); }; then
+		if [[ ${MTU_INPUT} =~ ^[0-9]+$ ]] && ( [ "${MTU_INPUT}" -eq 0 ] || ( [ "${MTU_INPUT}" -ge 576 ] && [ "${MTU_INPUT}" -le 1500 ] ) ); then
 			if [[ ${MTU_INPUT} -eq 0 ]]; then
 				CLIENT_MTU=""
 			else
@@ -444,7 +444,7 @@ function newClient() {
 		if [[ -z ${MTU_INPUT} ]]; then
 			break
 		fi
-		if [[ ${MTU_INPUT} =~ ^[0-9]+$ ]] && { [ "${MTU_INPUT}" -eq 0 ] || ( [ "${MTU_INPUT}" -ge 576 ] && [ "${MTU_INPUT}" -le 1500 ] ); }; then
+		if [[ ${MTU_INPUT} =~ ^[0-9]+$ ]] && ( [ "${MTU_INPUT}" -eq 0 ] || ( [ "${MTU_INPUT}" -ge 576 ] && [ "${MTU_INPUT}" -le 1500 ] ) ); then
 			if [[ ${MTU_INPUT} -eq 0 ]]; then
 				CLIENT_MTU_LOCAL=""
 			else
