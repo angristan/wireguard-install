@@ -127,6 +127,8 @@ function installQuestions() {
 	echo "I need to ask you a few questions before starting the setup."
 	echo "You can keep the default options and just press enter if you are ok with them."
 	echo ""
+	echo "Tip: You can use a DDNS hostname (recommended for dynamic IPs)."
+	echo ""
 
 	# Detect public IPv4 or IPv6 address and pre-fill for the user
 	SERVER_PUB_IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | awk '{print $1}' | head -1)
@@ -134,7 +136,9 @@ function installQuestions() {
 		# Detect public IPv6 address
 		SERVER_PUB_IP=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | head -1)
 	fi
-	read -rp "IPv4 or IPv6 public address: " -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
+	read -rp "Public IP or DDNS hostname (e.g. vpn.example.com): " \
+     -e -i "${SERVER_PUB_IP}" SERVER_PUB_IP
+
 
 	# Detect public interface and pre-fill for the user
 	SERVER_NIC="$(ip -4 route ls | grep default | awk '/dev/ {for (i=1; i<=NF; i++) if ($i == "dev") print $(i+1)}' | head -1)"
@@ -337,11 +341,11 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 
 function newClient() {
 	# If SERVER_PUB_IP is IPv6, add brackets if missing
-	if [[ ${SERVER_PUB_IP} =~ .*:.* ]]; then
-		if [[ ${SERVER_PUB_IP} != *"["* ]] || [[ ${SERVER_PUB_IP} != *"]"* ]]; then
-			SERVER_PUB_IP="[${SERVER_PUB_IP}]"
-		fi
+	# Add brackets ONLY for IPv6 literals, never for hostnames
+	if [[ ${SERVER_PUB_IP} =~ ^[0-9a-fA-F:]+$ ]]; then
+		SERVER_PUB_IP="[${SERVER_PUB_IP}]"
 	fi
+
 	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
 
 	echo ""
