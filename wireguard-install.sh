@@ -80,8 +80,10 @@ function checkOS() {
 				echo -e "${RED}Failed to install virt-what. Continuing without virtualization check.${NC}"
 			fi
 		fi
+	elif [[ ${OS} == "flatcar" ]] || [[ ${OS} == "coreos" && -n "${FLATCAR_BOARD:-}" ]]; then
+		OS=flatcar
 	else
-		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Oracle or Arch Linux system"
+		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, AlmaLinux, Rocky, Oracle, Arch, Alpine or Flatcar Linux system"
 		exit 1
 	fi
 }
@@ -223,6 +225,9 @@ function installWireGuard() {
 		installPackages dnf install -y wireguard-tools qrencode iptables
 	elif [[ ${OS} == 'arch' ]]; then
 		installPackages pacman -S --needed --noconfirm wireguard-tools qrencode
+	elif [[ ${OS} == 'flatcar' ]]; then
+		# Flatcar provides the required WireGuard tooling natively
+		:
 	elif [[ ${OS} == 'alpine' ]]; then
 		apk update
 		installPackages apk add wireguard-tools iptables libqrencode-tools
@@ -522,6 +527,9 @@ function uninstallWg() {
 			yum remove --noautoremove wireguard-tools qrencode
 		elif [[ ${OS} == 'arch' ]]; then
 			pacman -Rs --noconfirm wireguard-tools qrencode
+		elif [[ ${OS} == 'flatcar' ]]; then
+			# Flatcar provides the required WireGuard tooling natively
+			:
 		elif [[ ${OS} == 'alpine' ]]; then
 			(cd qrencode-4.1.1 || exit && make uninstall)
 			rm -rf qrencode-* || exit

@@ -22,6 +22,7 @@ Supported distributions:
 - CentOS Stream >= 8
 - Debian >= 10
 - Fedora >= 32
+- Flatcar Linux
 - Oracle Linux
 - Rocky Linux >= 8
 - Ubuntu >= 18.04
@@ -36,7 +37,8 @@ chmod +x wireguard-install.sh
 ./wireguard-install.sh
 ```
 
-It will install WireGuard (kernel module and tools) on the server, configure it, create a systemd service and a client configuration file.
+It will set up WireGuard on the server, configure it and create a client configuration file.
+On distributions that require it, the script also installs the needed WireGuard packages and enables the appropriate service.
 
 Run the script again to add or remove clients!
 
