@@ -178,6 +178,12 @@ assert_success "server status help" bash "$SCRIPT" --no-log --no-color server st
 assert_file_contains "server status help mentions json" "${TEST_TMP}/stdout" "--format <fmt>"
 assert_file_not_contains "installer avoids Arch package database sync" "$SCRIPT" "pacman -Sy &>/dev/null"
 assert_file_not_contains "installer avoids unattended Arch full upgrade" "$SCRIPT" "pacman --needed --noconfirm -Syu"
+assert_file_not_contains "installed menu avoids user wording" "$SCRIPT" "Add a new user"
+assert_file_not_contains "installed menu avoids users wording" "$SCRIPT" "List all users"
+assert_file_not_contains "installed menu avoids revoke user wording" "$SCRIPT" "Revoke existing user"
+assert_file_contains "installed menu uses add client wording" "$SCRIPT" "Add a new client"
+assert_file_contains "installed menu uses list clients wording" "$SCRIPT" "List all clients"
+assert_file_contains "installed menu uses revoke client wording" "$SCRIPT" "Revoke existing client"
 
 load_script_functions
 write_fake_commands
