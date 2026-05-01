@@ -1059,7 +1059,7 @@ installWireGuardPackages() {
 		run_cmd_fatal "Installing dependencies" apt-get install -y iproute2 iptables procps qrencode curl ca-certificates
 		run_cmd_fatal "Installing WireGuard from backports" apt-get install -y -t buster-backports wireguard
 	elif [[ $OS == "fedora" ]]; then
-		run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute iptables procps-ng qrencode curl ca-certificates
+		run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute iptables procps-ng qrencode ca-certificates
 	elif [[ $OS == "centos" ]]; then
 		if command -v dnf &>/dev/null; then
 			if [[ ${VERSION_ID%%.*} -eq 8 ]]; then
@@ -1068,12 +1068,12 @@ installWireGuardPackages() {
 			else
 				run_cmd "Installing EPEL repository" dnf install -y epel-release
 			fi
-			run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute iptables procps-ng curl ca-certificates
+			run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute iptables procps-ng ca-certificates
 			run_cmd_optional "Installing qrencode" dnf install -y qrencode
 		else
 			run_cmd_fatal "Installing repositories" yum install -y epel-release elrepo-release
 			run_cmd_fatal "Installing WireGuard kernel module" yum install -y kmod-wireguard
-			run_cmd_fatal "Installing WireGuard" yum install -y wireguard-tools iproute iptables procps-ng curl ca-certificates
+			run_cmd_fatal "Installing WireGuard" yum install -y wireguard-tools iproute iptables procps-ng ca-certificates
 			run_cmd_optional "Installing qrencode" yum install -y qrencode
 		fi
 	elif [[ $OS == "oracle" ]]; then
@@ -1083,10 +1083,10 @@ installWireGuardPackages() {
 			run_cmd "Enabling UEK repo" dnf config-manager --enable -y ol8_developer_UEKR6
 			run_cmd "Restricting UEK packages" dnf config-manager --save -y --setopt=ol8_developer_UEKR6.includepkgs='wireguard-tools*'
 		fi
-		run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute procps-ng iptables curl ca-certificates
+		run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute procps-ng iptables ca-certificates
 		run_cmd_optional "Installing qrencode" dnf install -y qrencode
 	elif [[ $OS == "amzn2023" ]]; then
-		run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute iptables procps-ng qrencode curl ca-certificates
+		run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute iptables procps-ng qrencode ca-certificates
 	elif [[ $OS == "opensuse" ]]; then
 		run_cmd_fatal "Installing WireGuard" zypper install -y wireguard-tools iproute2 iptables procps qrencode curl ca-certificates
 	elif [[ $OS == "arch" ]]; then
@@ -1541,7 +1541,9 @@ revokeClient() {
 	default_path="$(getHomeDirForClient "$CLIENT_NAME")/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
 	run_cmd "Removing default client config" rm -f "$default_path"
 	run_cmd "Removing root client config" rm -f "/root/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
-	run_cmd "Removing home client configs" find /home/ -maxdepth 2 -name "${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf" -delete
+	if command -v find &>/dev/null && [[ -d /home ]]; then
+		run_cmd "Removing home client configs" find /home/ -maxdepth 2 -name "${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf" -delete
+	fi
 
 	if wg show "$SERVER_WG_NIC" &>/dev/null; then
 		run_cmd "Applying WireGuard configuration" wg syncconf "$SERVER_WG_NIC" <(wg-quick strip "$SERVER_WG_NIC")
