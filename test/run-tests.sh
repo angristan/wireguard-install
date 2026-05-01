@@ -183,6 +183,64 @@ load_script_functions
 write_fake_commands
 set_common_config
 
+rpm_curl_minimal_bin="${TEST_TMP}/rpm-curl-minimal-bin"
+mkdir -p "$rpm_curl_minimal_bin"
+cat >"${rpm_curl_minimal_bin}/dnf" <<'EOF'
+#!/bin/sh
+echo "package:$3:" >>"$FAKE_PKG_LOG"
+if [ "$1" = "install" ] && [ "$2" = "-y" ] && [ "$3" = "curl-minimal" ]; then
+	printf '%s\n' '#!/bin/sh' 'exit 0' >"$FAKE_BIN/curl"
+	/bin/chmod +x "$FAKE_BIN/curl"
+	exit 0
+fi
+exit 1
+EOF
+chmod +x "${rpm_curl_minimal_bin}/dnf"
+if (
+	PATH="$rpm_curl_minimal_bin"
+	export PATH
+	FAKE_BIN="$rpm_curl_minimal_bin"
+	FAKE_PKG_LOG="${TEST_TMP}/rpm-curl-minimal.log"
+	export FAKE_BIN FAKE_PKG_LOG
+	OS=fedora
+	installCurlCommand
+) >"${TEST_TMP}/stdout" 2>"${TEST_TMP}/stderr"; then
+	pass "RPM curl helper installs curl-minimal when curl is missing"
+else
+	fail "RPM curl helper installs curl-minimal when curl is missing"
+fi
+assert_file_contains "RPM curl helper prefers curl-minimal" "${TEST_TMP}/rpm-curl-minimal.log" "package:curl-minimal:"
+assert_file_not_contains "RPM curl helper avoids full curl when minimal works" "${TEST_TMP}/rpm-curl-minimal.log" "package:curl:"
+
+rpm_curl_fallback_bin="${TEST_TMP}/rpm-curl-fallback-bin"
+mkdir -p "$rpm_curl_fallback_bin"
+cat >"${rpm_curl_fallback_bin}/dnf" <<'EOF'
+#!/bin/sh
+echo "package:$3:" >>"$FAKE_PKG_LOG"
+if [ "$1" = "install" ] && [ "$2" = "-y" ] && [ "$3" = "curl" ]; then
+	printf '%s\n' '#!/bin/sh' 'exit 0' >"$FAKE_BIN/curl"
+	/bin/chmod +x "$FAKE_BIN/curl"
+	exit 0
+fi
+exit 1
+EOF
+chmod +x "${rpm_curl_fallback_bin}/dnf"
+if (
+	PATH="$rpm_curl_fallback_bin"
+	export PATH
+	FAKE_BIN="$rpm_curl_fallback_bin"
+	FAKE_PKG_LOG="${TEST_TMP}/rpm-curl-fallback.log"
+	export FAKE_BIN FAKE_PKG_LOG
+	OS=fedora
+	installCurlCommand
+) >"${TEST_TMP}/stdout" 2>"${TEST_TMP}/stderr"; then
+	pass "RPM curl helper falls back to full curl when curl-minimal is unavailable"
+else
+	fail "RPM curl helper falls back to full curl when curl-minimal is unavailable"
+fi
+assert_file_contains "RPM curl helper tries curl-minimal first" "${TEST_TMP}/rpm-curl-fallback.log" "package:curl-minimal:"
+assert_file_contains "RPM curl helper can fall back to full curl" "${TEST_TMP}/rpm-curl-fallback.log" "package:curl:"
+
 assert_true "version_ge accepts newer version" version_ge "2.1" "2.0"
 assert_true "version_ge accepts equal version" version_ge "2.0" "2.0"
 assert_false "version_ge rejects older version" version_ge "1.9" "2.0"

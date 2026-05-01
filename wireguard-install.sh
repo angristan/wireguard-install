@@ -1045,6 +1045,47 @@ createFirewallScripts() {
 	chmod +x "$add_rules" "$rm_rules"
 }
 
+installCurlCommand() {
+	if command -v curl &>/dev/null; then
+		return 0
+	fi
+
+	case "$OS" in
+	ubuntu | debian)
+		run_cmd_fatal "Installing curl" apt-get install -y curl ca-certificates
+		;;
+	fedora | centos | oracle | amzn2023)
+		local package_manager
+		if command -v dnf &>/dev/null; then
+			package_manager=dnf
+		elif command -v yum &>/dev/null; then
+			package_manager=yum
+		else
+			log_fatal "Could not install curl: neither dnf nor yum was found."
+		fi
+
+		if ! RUN_CMD_WARN_ONLY=1 run_cmd "Installing curl-minimal" "$package_manager" install -y curl-minimal; then
+			run_cmd_fatal "Installing curl" "$package_manager" install -y curl
+		fi
+		;;
+	opensuse)
+		run_cmd_fatal "Installing curl" zypper install -y curl ca-certificates
+		;;
+	arch)
+		if ! run_cmd "Installing curl" pacman --needed --noconfirm -S curl; then
+			log_fatal "Arch curl installation failed. Update the system manually with 'pacman -Syu', reboot if the kernel changes, then run this script again."
+		fi
+		;;
+	alpine)
+		run_cmd_fatal "Installing curl" apk add curl ca-certificates
+		;;
+	esac
+
+	if ! command -v curl &>/dev/null; then
+		log_fatal "curl installation failed. The 'curl' command was not found."
+	fi
+}
+
 installWireGuardPackages() {
 	log_header "Installing WireGuard"
 
@@ -1097,6 +1138,8 @@ installWireGuardPackages() {
 		run_cmd_fatal "Updating package lists" apk update
 		run_cmd_fatal "Installing WireGuard" apk add wireguard-tools iproute2 iptables procps libqrencode-tools curl ca-certificates
 	fi
+
+	installCurlCommand
 
 	if ! command -v wg &>/dev/null; then
 		log_fatal "WireGuard installation failed. The 'wg' command was not found."
