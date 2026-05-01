@@ -822,11 +822,17 @@ installQuestions() {
 		read -rp "Server WireGuard port [1-65535]: " -e -i "$random_port" SERVER_PORT
 	done
 
-	until is_valid_dns "$CLIENT_DNS_1" && [[ -n $CLIENT_DNS_1 ]]; do
-		read -rp "First DNS resolver to use for the clients: " -e -i "$DEFAULT_CLIENT_DNS_1" CLIENT_DNS_1
+	while true; do
+		read -rp "First DNS resolver to use for the clients: " -e -i "${CLIENT_DNS_1:-$DEFAULT_CLIENT_DNS_1}" CLIENT_DNS_1
+		if is_valid_dns "$CLIENT_DNS_1" && [[ -n $CLIENT_DNS_1 ]]; then
+			break
+		fi
 	done
-	until is_valid_dns "$CLIENT_DNS_2"; do
-		read -rp "Second DNS resolver to use for the clients (optional): " -e -i "$DEFAULT_CLIENT_DNS_2" CLIENT_DNS_2
+	while true; do
+		read -rp "Second DNS resolver to use for the clients (optional): " -e -i "${CLIENT_DNS_2:-$DEFAULT_CLIENT_DNS_2}" CLIENT_DNS_2
+		if is_valid_dns "$CLIENT_DNS_2"; then
+			break
+		fi
 	done
 
 	local default_allowed_ips

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
+# shellcheck disable=SC1090,SC2329
 
 set -euo pipefail
 
@@ -240,6 +240,74 @@ else
 fi
 assert_file_contains "RPM curl helper tries curl-minimal first" "${TEST_TMP}/rpm-curl-fallback.log" "package:curl-minimal:"
 assert_file_contains "RPM curl helper can fall back to full curl" "${TEST_TMP}/rpm-curl-fallback.log" "package:curl:"
+
+dns_prompt_log="${TEST_TMP}/dns-prompts.log"
+if (
+	set +u
+	set_common_config
+	APPROVE_INSTALL=y
+	CLIENT_DNS_1="9.9.9.9"
+	CLIENT_DNS_2="149.112.112.112"
+	DNS_PROMPT_LOG="$dns_prompt_log"
+	export DNS_PROMPT_LOG
+	detect_server_network() {
+		DETECTED_IPV4="198.51.100.10"
+		DETECTED_IPV6=""
+		DETECTED_NIC="eth0"
+	}
+	has_ipv6_connectivity() {
+		return 1
+	}
+	shuf() {
+		echo 51820
+	}
+	read() {
+		local prompt=""
+		local default=""
+		local target=""
+		while [[ $# -gt 0 ]]; do
+			case "$1" in
+			-r | -e)
+				shift
+				;;
+			-rp | -p)
+				prompt="$2"
+				shift 2
+				;;
+			-i)
+				default="$2"
+				shift 2
+				;;
+			*)
+				target="$1"
+				shift
+				;;
+			esac
+		done
+
+		echo "$prompt" >>"$DNS_PROMPT_LOG"
+		if [[ -n $target ]]; then
+			case "$prompt" in
+			"Client IP versions"*)
+				printf -v "$target" "1"
+				;;
+			"MTU choice"*)
+				printf -v "$target" "1"
+				;;
+			*)
+				printf -v "$target" "%s" "$default"
+				;;
+			esac
+		fi
+	}
+	installQuestions
+) >"${TEST_TMP}/stdout" 2>"${TEST_TMP}/stderr"; then
+	pass "interactive install prompts for prefilled DNS resolvers"
+else
+	fail "interactive install prompts for prefilled DNS resolvers"
+fi
+assert_file_contains "interactive install prompts for first DNS" "$dns_prompt_log" "First DNS resolver to use for the clients: "
+assert_file_contains "interactive install prompts for second DNS" "$dns_prompt_log" "Second DNS resolver to use for the clients (optional): "
 
 assert_true "version_ge accepts newer version" version_ge "2.1" "2.0"
 assert_true "version_ge accepts equal version" version_ge "2.0" "2.0"
