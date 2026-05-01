@@ -147,10 +147,18 @@ run_cmd() {
 
 	if [[ $ret -eq 0 ]]; then
 		log_debug "$desc completed successfully"
+	elif [[ ${RUN_CMD_WARN_ONLY:-0} == "1" ]]; then
+		log_warn "$desc failed with exit code $ret"
 	else
 		log_error "$desc failed with exit code $ret"
 	fi
 	return "$ret"
+}
+
+run_cmd_optional() {
+	local desc="$1"
+	shift
+	RUN_CMD_WARN_ONLY=1 run_cmd "$desc" "$@" || true
 }
 
 run_cmd_fatal() {
@@ -651,7 +659,7 @@ detect_server_network() {
 
 	DETECTED_IPV4=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)
 	DETECTED_IPV6=$(ip -6 addr | sed -ne 's|^.* inet6 \([^/]*\)/.* scope global.*$|\1|p' | head -1)
-	DETECTED_NIC=$(ip -4 route ls | awk '/default/ {for (i=1; i<=NF; i++) if ($i == "dev") print $(i+1)}' | head -1)
+	DETECTED_NIC=$(ip -4 route show default | awk '/default/ {for (i=1; i<=NF; i++) if ($i == "dev") print $(i+1)}' | head -1)
 	if [[ -z $DETECTED_NIC ]]; then
 		DETECTED_NIC=$(ip -6 route show default | sed -ne 's/^default .* dev \([^ ]*\) .*$/\1/p' | head -1)
 	fi
@@ -1054,12 +1062,12 @@ installWireGuardPackages() {
 				run_cmd "Installing EPEL repository" dnf install -y epel-release
 			fi
 			run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute iptables procps-ng curl ca-certificates
-			run_cmd "Installing qrencode" dnf install -y qrencode
+			run_cmd_optional "Installing qrencode" dnf install -y qrencode
 		else
 			run_cmd_fatal "Installing repositories" yum install -y epel-release elrepo-release
 			run_cmd_fatal "Installing WireGuard kernel module" yum install -y kmod-wireguard
 			run_cmd_fatal "Installing WireGuard" yum install -y wireguard-tools iproute iptables procps-ng curl ca-certificates
-			run_cmd "Installing qrencode" yum install -y qrencode
+			run_cmd_optional "Installing qrencode" yum install -y qrencode
 		fi
 	elif [[ $OS == "oracle" ]]; then
 		if [[ ${VERSION_ID%%.*} -eq 8 ]]; then
@@ -1068,7 +1076,8 @@ installWireGuardPackages() {
 			run_cmd "Enabling UEK repo" dnf config-manager --enable -y ol8_developer_UEKR6
 			run_cmd "Restricting UEK packages" dnf config-manager --save -y --setopt=ol8_developer_UEKR6.includepkgs='wireguard-tools*'
 		fi
-		run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute procps-ng qrencode iptables curl ca-certificates
+		run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute procps-ng iptables curl ca-certificates
+		run_cmd_optional "Installing qrencode" dnf install -y qrencode
 	elif [[ $OS == "amzn2023" ]]; then
 		run_cmd_fatal "Installing WireGuard" dnf install -y wireguard-tools iproute iptables procps-ng qrencode curl ca-certificates
 	elif [[ $OS == "opensuse" ]]; then
@@ -1145,13 +1154,17 @@ installWireGuard() {
 
 	if [[ $OS == "alpine" ]]; then
 		run_cmd "Applying sysctl rules" sysctl -p /etc/sysctl.d/99-wireguard.conf
-		run_cmd "Enabling sysctl service" rc-update add sysctl
-		ln -sf /etc/init.d/wg-quick "/etc/init.d/wg-quick.${SERVER_WG_NIC}"
-		run_cmd "Starting WireGuard service" rc-service "wg-quick.${SERVER_WG_NIC}" start
-		run_cmd "Enabling WireGuard service" rc-update add "wg-quick.${SERVER_WG_NIC}"
+		if command -v rc-update &>/dev/null && command -v rc-service &>/dev/null && [[ -d /etc/init.d ]]; then
+			run_cmd "Enabling sysctl service" rc-update add sysctl
+			run_cmd "Creating WireGuard OpenRC service" ln -sf /etc/init.d/wg-quick "/etc/init.d/wg-quick.${SERVER_WG_NIC}"
+			run_cmd "Starting WireGuard service" rc-service "wg-quick.${SERVER_WG_NIC}" start
+			run_cmd "Enabling WireGuard service" rc-update add "wg-quick.${SERVER_WG_NIC}"
+		else
+			log_warn "OpenRC is not available. Start WireGuard manually with: wg-quick up ${SERVER_WG_NIC}"
+		fi
 	else
 		run_cmd "Applying sysctl rules" sysctl --system
-		if command -v systemctl &>/dev/null; then
+		if command -v systemctl &>/dev/null && [[ -d /run/systemd/system ]]; then
 			run_cmd "Starting WireGuard service" systemctl start "wg-quick@${SERVER_WG_NIC}"
 			run_cmd "Enabling WireGuard service" systemctl enable "wg-quick@${SERVER_WG_NIC}"
 		else
