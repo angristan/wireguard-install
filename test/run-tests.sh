@@ -315,6 +315,7 @@ assert_file_contains "interactive install prompts for prefilled server IPv6" "$i
 assert_file_contains "interactive install prompts for prefilled server port" "$install_prompt_log" "Server WireGuard port [1-65535]: "
 assert_file_contains "interactive install prompts for first DNS" "$install_prompt_log" "First DNS resolver to use for the clients: "
 assert_file_contains "interactive install prompts for second DNS" "$install_prompt_log" "Second DNS resolver to use for the clients (optional): "
+assert_file_contains "interactive install explains all-traffic AllowedIPs" "${TEST_TMP}/stdout" "0.0.0.0/0,::/0 routes all IPv4 and IPv6 client traffic through the VPN."
 assert_file_contains "interactive install prompts for prefilled AllowedIPs" "$install_prompt_log" "Allowed IPs list for generated clients: "
 assert_file_contains "interactive install prompts for MTU mode" "$install_prompt_log" "MTU choice [1-2]: "
 assert_file_contains "interactive install prompts for prefilled custom MTU" "$install_prompt_log" "MTU [576-65535]: "

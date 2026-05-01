@@ -866,6 +866,7 @@ installQuestions() {
 	while true; do
 		log_menu ""
 		log_prompt "WireGuard uses AllowedIPs to determine what is routed over the VPN."
+		log_prompt "${DEFAULT_ALLOWED_IPS_IPV4},${DEFAULT_ALLOWED_IPS_IPV6} routes all IPv4 and IPv6 client traffic through the VPN."
 		read -rp "Allowed IPs list for generated clients: " -e -i "${ALLOWED_IPS:-$default_allowed_ips}" ALLOWED_IPS
 		if [[ -n $ALLOWED_IPS ]]; then
 			break
