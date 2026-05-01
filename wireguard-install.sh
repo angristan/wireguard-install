@@ -372,6 +372,10 @@ checkVirt() {
 	fi
 }
 
+isContainer() {
+	[[ -f /.dockerenv ]] || grep -qE '(docker|lxc|containerd)' /proc/1/cgroup 2>/dev/null
+}
+
 checkOS() {
 	if [[ -e /etc/os-release ]]; then
 		source /etc/os-release
@@ -455,7 +459,7 @@ checkArchPendingKernelUpgrade() {
 		return 0
 	fi
 
-	if [[ -f /.dockerenv ]] || grep -qE '(docker|lxc|containerd)' /proc/1/cgroup 2>/dev/null; then
+	if isContainer; then
 		log_info "Running in a container, skipping Arch kernel module checks."
 		return 0
 	fi
@@ -1105,7 +1109,11 @@ installWireGuardPackages() {
 		if command -v dnf &>/dev/null; then
 			if [[ ${VERSION_ID%%.*} -eq 8 ]]; then
 				run_cmd_fatal "Installing repositories" dnf install -y epel-release elrepo-release
-				run_cmd_fatal "Installing WireGuard kernel module" dnf install -y kmod-wireguard
+				if isContainer; then
+					log_info "Running in a container, skipping WireGuard kernel module package."
+				else
+					run_cmd_fatal "Installing WireGuard kernel module" dnf install -y kmod-wireguard
+				fi
 			else
 				run_cmd "Installing EPEL repository" dnf install -y epel-release
 			fi
@@ -1113,7 +1121,11 @@ installWireGuardPackages() {
 			run_cmd_optional "Installing qrencode" dnf install -y qrencode
 		else
 			run_cmd_fatal "Installing repositories" yum install -y epel-release elrepo-release
-			run_cmd_fatal "Installing WireGuard kernel module" yum install -y kmod-wireguard
+			if isContainer; then
+				log_info "Running in a container, skipping WireGuard kernel module package."
+			else
+				run_cmd_fatal "Installing WireGuard kernel module" yum install -y kmod-wireguard
+			fi
 			run_cmd_fatal "Installing WireGuard" yum install -y wireguard-tools iproute iptables procps-ng ca-certificates
 			run_cmd_optional "Installing qrencode" yum install -y qrencode
 		fi
