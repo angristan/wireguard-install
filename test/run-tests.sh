@@ -241,15 +241,15 @@ fi
 assert_file_contains "RPM curl helper tries curl-minimal first" "${TEST_TMP}/rpm-curl-fallback.log" "package:curl-minimal:"
 assert_file_contains "RPM curl helper can fall back to full curl" "${TEST_TMP}/rpm-curl-fallback.log" "package:curl:"
 
-dns_prompt_log="${TEST_TMP}/dns-prompts.log"
+install_prompt_log="${TEST_TMP}/install-prompts.log"
 if (
 	set +u
 	set_common_config
 	APPROVE_INSTALL=y
 	CLIENT_DNS_1="9.9.9.9"
 	CLIENT_DNS_2="149.112.112.112"
-	DNS_PROMPT_LOG="$dns_prompt_log"
-	export DNS_PROMPT_LOG
+	INSTALL_PROMPT_LOG="$install_prompt_log"
+	export INSTALL_PROMPT_LOG
 	detect_server_network() {
 		DETECTED_IPV4="198.51.100.10"
 		DETECTED_IPV6=""
@@ -285,14 +285,14 @@ if (
 			esac
 		done
 
-		echo "$prompt" >>"$DNS_PROMPT_LOG"
+		echo "$prompt" >>"$INSTALL_PROMPT_LOG"
 		if [[ -n $target ]]; then
 			case "$prompt" in
 			"Client IP versions"*)
-				printf -v "$target" "1"
+				printf -v "$target" "3"
 				;;
 			"MTU choice"*)
-				printf -v "$target" "1"
+				printf -v "$target" "2"
 				;;
 			*)
 				printf -v "$target" "%s" "$default"
@@ -302,12 +302,22 @@ if (
 	}
 	installQuestions
 ) >"${TEST_TMP}/stdout" 2>"${TEST_TMP}/stderr"; then
-	pass "interactive install prompts for prefilled DNS resolvers"
+	pass "interactive install prompts for prefilled install settings"
 else
-	fail "interactive install prompts for prefilled DNS resolvers"
+	fail "interactive install prompts for prefilled install settings"
 fi
-assert_file_contains "interactive install prompts for first DNS" "$dns_prompt_log" "First DNS resolver to use for the clients: "
-assert_file_contains "interactive install prompts for second DNS" "$dns_prompt_log" "Second DNS resolver to use for the clients (optional): "
+assert_file_contains "interactive install prompts for prefilled endpoint" "$install_prompt_log" "IPv4 or IPv6 public address or hostname: "
+assert_file_contains "interactive install prompts for prefilled public interface" "$install_prompt_log" "Public interface: "
+assert_file_contains "interactive install prompts for prefilled WireGuard interface" "$install_prompt_log" "WireGuard interface name: "
+assert_file_contains "interactive install prompts for client IP mode" "$install_prompt_log" "Client IP versions [1-3]: "
+assert_file_contains "interactive install prompts for prefilled server IPv4" "$install_prompt_log" "Server WireGuard IPv4: "
+assert_file_contains "interactive install prompts for prefilled server IPv6" "$install_prompt_log" "Server WireGuard IPv6: "
+assert_file_contains "interactive install prompts for prefilled server port" "$install_prompt_log" "Server WireGuard port [1-65535]: "
+assert_file_contains "interactive install prompts for first DNS" "$install_prompt_log" "First DNS resolver to use for the clients: "
+assert_file_contains "interactive install prompts for second DNS" "$install_prompt_log" "Second DNS resolver to use for the clients (optional): "
+assert_file_contains "interactive install prompts for prefilled AllowedIPs" "$install_prompt_log" "Allowed IPs list for generated clients: "
+assert_file_contains "interactive install prompts for MTU mode" "$install_prompt_log" "MTU choice [1-2]: "
+assert_file_contains "interactive install prompts for prefilled custom MTU" "$install_prompt_log" "MTU [576-65535]: "
 
 assert_true "version_ge accepts newer version" version_ge "2.1" "2.0"
 assert_true "version_ge accepts equal version" version_ge "2.0" "2.0"

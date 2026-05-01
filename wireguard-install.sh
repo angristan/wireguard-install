@@ -760,16 +760,25 @@ installQuestions() {
 		default_endpoint="$DETECTED_IPV6"
 	fi
 
-	until [[ -n $SERVER_PUB_IP ]]; do
-		read -rp "IPv4 or IPv6 public address or hostname: " -e -i "$default_endpoint" SERVER_PUB_IP
+	while true; do
+		read -rp "IPv4 or IPv6 public address or hostname: " -e -i "${SERVER_PUB_IP:-$default_endpoint}" SERVER_PUB_IP
+		if [[ -n $SERVER_PUB_IP ]]; then
+			break
+		fi
 	done
 
-	until is_valid_interface_name "$SERVER_PUB_NIC"; do
-		read -rp "Public interface: " -e -i "$DETECTED_NIC" SERVER_PUB_NIC
+	while true; do
+		read -rp "Public interface: " -e -i "${SERVER_PUB_NIC:-$DETECTED_NIC}" SERVER_PUB_NIC
+		if is_valid_interface_name "$SERVER_PUB_NIC"; then
+			break
+		fi
 	done
 
-	until is_valid_interface_name "$SERVER_WG_NIC"; do
-		read -rp "WireGuard interface name: " -e -i "$DEFAULT_SERVER_WG_NIC" SERVER_WG_NIC
+	while true; do
+		read -rp "WireGuard interface name: " -e -i "${SERVER_WG_NIC:-$DEFAULT_SERVER_WG_NIC}" SERVER_WG_NIC
+		if is_valid_interface_name "$SERVER_WG_NIC"; then
+			break
+		fi
 	done
 
 	log_menu ""
@@ -801,16 +810,22 @@ installQuestions() {
 	esac
 
 	if [[ $CLIENT_IPV4 == "y" ]]; then
-		until is_valid_ipv4 "$SERVER_WG_IPV4"; do
-			read -rp "Server WireGuard IPv4: " -e -i "$DEFAULT_SERVER_WG_IPV4" SERVER_WG_IPV4
+		while true; do
+			read -rp "Server WireGuard IPv4: " -e -i "${SERVER_WG_IPV4:-$DEFAULT_SERVER_WG_IPV4}" SERVER_WG_IPV4
+			if is_valid_ipv4 "$SERVER_WG_IPV4"; then
+				break
+			fi
 		done
 	else
 		SERVER_WG_IPV4="$DEFAULT_SERVER_WG_IPV4"
 	fi
 
 	if [[ $CLIENT_IPV6 == "y" ]]; then
-		until is_valid_ipv6 "$SERVER_WG_IPV6"; do
-			read -rp "Server WireGuard IPv6: " -e -i "$DEFAULT_SERVER_WG_IPV6" SERVER_WG_IPV6
+		while true; do
+			read -rp "Server WireGuard IPv6: " -e -i "${SERVER_WG_IPV6:-$DEFAULT_SERVER_WG_IPV6}" SERVER_WG_IPV6
+			if is_valid_ipv6 "$SERVER_WG_IPV6"; then
+				break
+			fi
 		done
 	else
 		SERVER_WG_IPV6="$DEFAULT_SERVER_WG_IPV6"
@@ -818,8 +833,13 @@ installQuestions() {
 
 	local random_port
 	random_port=$(shuf -i 49152-65535 -n1)
-	until is_valid_port "$SERVER_PORT"; do
-		read -rp "Server WireGuard port [1-65535]: " -e -i "$random_port" SERVER_PORT
+	local port_default="${SERVER_PORT:-$random_port}"
+	[[ $port_default == "random" ]] && port_default="$random_port"
+	while true; do
+		read -rp "Server WireGuard port [1-65535]: " -e -i "$port_default" SERVER_PORT
+		if is_valid_port "$SERVER_PORT"; then
+			break
+		fi
 	done
 
 	while true; do
@@ -843,10 +863,13 @@ installQuestions() {
 	else
 		default_allowed_ips="$DEFAULT_ALLOWED_IPS_IPV6"
 	fi
-	until [[ -n $ALLOWED_IPS ]]; do
+	while true; do
 		log_menu ""
 		log_prompt "WireGuard uses AllowedIPs to determine what is routed over the VPN."
-		read -rp "Allowed IPs list for generated clients: " -e -i "$default_allowed_ips" ALLOWED_IPS
+		read -rp "Allowed IPs list for generated clients: " -e -i "${ALLOWED_IPS:-$default_allowed_ips}" ALLOWED_IPS
+		if [[ -n $ALLOWED_IPS ]]; then
+			break
+		fi
 	done
 
 	log_menu ""
@@ -858,8 +881,11 @@ installQuestions() {
 		read -rp "MTU choice [1-2]: " -e -i 1 mtu_choice
 	done
 	if [[ $mtu_choice == "2" ]]; then
-		until is_valid_mtu "$MTU"; do
-			read -rp "MTU [576-65535]: " -e -i 1420 MTU
+		while true; do
+			read -rp "MTU [576-65535]: " -e -i "${MTU:-1420}" MTU
+			if is_valid_mtu "$MTU"; then
+				break
+			fi
 		done
 	fi
 
