@@ -2,6 +2,9 @@ on: [push, pull_request, pull_request_target]
 
 name: Lint
 
+permissions:
+  contents: read
+
 jobs:
   shellcheck:
     runs-on: ubuntu-latest
@@ -17,4 +20,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mfinelli/setup-shfmt@v3
-      - run: shfmt -d wireguard-install.sh
+      - run: shfmt -d wireguard-install.sh test/run-tests.sh test/e2e/*.sh
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash test/run-tests.sh

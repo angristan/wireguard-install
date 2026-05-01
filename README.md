@@ -18,11 +18,14 @@ Supported distributions:
 
 - AlmaLinux >= 8
 - Alpine Linux
+- Amazon Linux 2023
 - Arch Linux
 - CentOS Stream >= 8
 - Debian >= 10
 - Fedora >= 32
+- openSUSE Leap >= 15 and Tumbleweed
 - Oracle Linux
+- RHEL-compatible distributions >= 8
 - Rocky Linux >= 8
 - Ubuntu >= 18.04
 
@@ -38,7 +41,15 @@ chmod +x wireguard-install.sh
 
 It will install WireGuard (kernel module and tools) on the server, configure it, create a systemd service and a client configuration file.
 
-Run the script again to add or remove clients!
+Run the script again to add or remove clients. You can also use the subcommand interface:
+
+```bash
+./wireguard-install.sh install --endpoint vpn.example.com --client alice
+./wireguard-install.sh client add bob --output /tmp/bob.conf
+./wireguard-install.sh client list
+./wireguard-install.sh client revoke bob --force
+./wireguard-install.sh server status
+```
 
 ## Providers
 
@@ -51,6 +62,33 @@ I recommend these cheap cloud providers for your VPN server:
 ## Contributing
 
 Contributions are welcome! Here's how you can help:
+
+### Testing
+
+Run the local test suite before opening a PR:
+
+```bash
+bash test/run-tests.sh
+```
+
+To run the Docker E2E test, you need Docker and WireGuard kernel support on the host:
+
+```bash
+bash test/e2e/run-docker-e2e.sh
+```
+
+Run it against another server base image with:
+
+```bash
+SERVER_BASE_IMAGE=debian:12 bash test/e2e/run-docker-e2e.sh
+```
+
+The GitHub Actions E2E matrix runs this across the supported distro families, plus focused nftables and dual-stack scenarios. You can run those locally with:
+
+```bash
+ENABLE_NFTABLES=y SERVER_BASE_IMAGE=debian:12 bash test/e2e/run-docker-e2e.sh
+CLIENT_IPV6=y bash test/e2e/run-docker-e2e.sh
+```
 
 ### Discuss changes
 

@@ -1,0 +1,18 @@
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE}
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends \
+		ca-certificates \
+		iproute2 \
+		iputils-ping \
+		wireguard-tools \
+	&& rm -rf /var/lib/apt/lists/*
+
+COPY test/e2e/client-entrypoint.sh /opt/e2e/client-entrypoint.sh
+
+RUN chmod +x /opt/e2e/client-entrypoint.sh
+
+ENTRYPOINT ["/opt/e2e/client-entrypoint.sh"]

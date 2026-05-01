@@ -1,0 +1,104 @@
+---
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+name: Docker E2E
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  docker-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - name: ubuntu-18.04
+            image: ubuntu:18.04
+          - name: ubuntu-20.04
+            image: ubuntu:20.04
+          - name: ubuntu-22.04
+            image: ubuntu:22.04
+          - name: ubuntu-24.04
+            image: ubuntu:24.04
+          - name: ubuntu-25.10
+            image: ubuntu:25.10
+          - name: debian-11
+            image: debian:11
+          - name: debian-12
+            image: debian:12
+          - name: debian-13
+            image: debian:13
+          - name: fedora-42
+            image: fedora:42
+          - name: fedora-43
+            image: fedora:43
+          - name: centos-stream-9
+            image: quay.io/centos/centos:stream9
+          - name: centos-stream-10
+            image: quay.io/centos/centos:stream10
+          - name: rocky-8
+            image: rockylinux/rockylinux:8
+          - name: rocky-9
+            image: rockylinux/rockylinux:9
+          - name: rocky-10
+            image: rockylinux/rockylinux:10
+          - name: almalinux-8
+            image: almalinux:8
+          - name: almalinux-9
+            image: almalinux:9
+          - name: almalinux-10
+            image: almalinux:10
+          - name: oraclelinux-8
+            image: oraclelinux:8
+          - name: oraclelinux-9
+            image: oraclelinux:9
+          - name: oraclelinux-10
+            image: oraclelinux:10
+          - name: amazonlinux-2023
+            image: amazonlinux:2023
+          - name: archlinux
+            image: archlinux:latest
+          - name: opensuse-leap-16.0
+            image: opensuse/leap:16.0
+          - name: opensuse-tumbleweed
+            image: opensuse/tumbleweed
+          - name: alpine
+            image: alpine:latest
+        include:
+          - os:
+              name: debian-12-nftables
+              image: debian:12
+              enable_nftables: true
+          - os:
+              name: ubuntu-24.04-dual-stack
+              image: ubuntu:24.04
+              client_ipv6: true
+
+    name: ${{ matrix.os.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check WireGuard kernel support
+        run: |
+          sudo modprobe wireguard || true
+          sudo ip link add wg-e2e-probe type wireguard
+          sudo ip link delete wg-e2e-probe
+
+      - name: Run Docker E2E
+        env:
+          SERVER_BASE_IMAGE: ${{ matrix.os.image }}
+          ENABLE_NFTABLES: ${{ matrix.os.enable_nftables && 'y' || 'n' }}
+          CLIENT_IPV6: ${{ matrix.os.client_ipv6 && 'y' || 'n' }}
+        run: bash test/e2e/run-docker-e2e.sh
