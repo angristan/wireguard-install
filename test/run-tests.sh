@@ -91,6 +91,20 @@ assert_file_contains() {
 	fi
 }
 
+assert_file_not_contains() {
+	local name="$1"
+	local file="$2"
+	local pattern="$3"
+
+	if grep -Fq -- "$pattern" "$file"; then
+		echo "unexpected pattern: $pattern" >"${TEST_TMP}/stdout"
+		echo "file: $file" >>"${TEST_TMP}/stdout"
+		fail "$name"
+	else
+		pass "$name"
+	fi
+}
+
 assert_fails() {
 	local name="$1"
 	shift
@@ -162,6 +176,8 @@ assert_success "client add help" bash "$SCRIPT" --no-log --no-color client add -
 assert_file_contains "client add help mentions output path" "${TEST_TMP}/stdout" "--output <path>"
 assert_success "server status help" bash "$SCRIPT" --no-log --no-color server status --help
 assert_file_contains "server status help mentions json" "${TEST_TMP}/stdout" "--format <fmt>"
+assert_file_not_contains "installer avoids Arch package database sync" "$SCRIPT" "pacman -Sy &>/dev/null"
+assert_file_not_contains "installer avoids unattended Arch full upgrade" "$SCRIPT" "pacman --needed --noconfirm -Syu"
 
 load_script_functions
 write_fake_commands

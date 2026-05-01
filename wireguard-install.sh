@@ -466,14 +466,22 @@ checkArchPendingKernelUpgrade() {
 		log_fatal "Kernel modules for the running kernel (${running_kernel}) were not found. Reboot before installing WireGuard."
 	fi
 
-	log_info "Checking for pending kernel upgrades on Arch Linux..."
-	if ! pacman -Sy &>/dev/null; then
-		log_warn "Failed to sync the package database, skipping kernel upgrade check."
+	if ! command -v checkupdates &>/dev/null; then
+		log_warn "checkupdates is not installed, skipping Arch pending kernel upgrade check to avoid mutating pacman databases."
+		log_warn "Install pacman-contrib for this preflight check, or make sure the system is fully upgraded and rebooted before installing."
 		return 0
 	fi
 
-	local pending_kernels
-	pending_kernels=$(pacman -Qu 2>/dev/null | grep -E '^linux' || true)
+	log_info "Checking for pending kernel upgrades on Arch Linux..."
+	local updates checkupdates_status pending_kernels
+	updates=$(checkupdates 2>/dev/null)
+	checkupdates_status=$?
+	if [[ $checkupdates_status -ne 0 && $checkupdates_status -ne 2 ]]; then
+		log_warn "Unable to check pending Arch updates without mutating pacman databases, skipping kernel upgrade check."
+		return 0
+	fi
+
+	pending_kernels=$(grep -E '^(linux|linux-lts|linux-zen|linux-hardened)[[:space:]]' <<<"$updates" || true)
 	if [[ -n $pending_kernels ]]; then
 		log_warn "Linux kernel upgrade(s) are pending:"
 		while read -r line; do
@@ -496,7 +504,6 @@ initialCheck() {
 	log_debug "Detected OS: $OS (${PRETTY_NAME:-unknown})"
 
 	checkVirt
-	checkArchPendingKernelUpgrade
 }
 
 is_valid_port() {
@@ -1083,7 +1090,9 @@ installWireGuardPackages() {
 	elif [[ $OS == "opensuse" ]]; then
 		run_cmd_fatal "Installing WireGuard" zypper install -y wireguard-tools iproute2 iptables procps qrencode curl ca-certificates
 	elif [[ $OS == "arch" ]]; then
-		run_cmd_fatal "Installing WireGuard" pacman --needed --noconfirm -Syu wireguard-tools iproute2 iptables procps-ng qrencode
+		if ! run_cmd "Installing WireGuard" pacman --needed --noconfirm -S wireguard-tools iproute2 iptables procps-ng qrencode; then
+			log_fatal "Arch package installation failed. Update the system manually with 'pacman -Syu', reboot if the kernel changes, then run this script again."
+		fi
 	elif [[ $OS == "alpine" ]]; then
 		run_cmd_fatal "Updating package lists" apk update
 		run_cmd_fatal "Installing WireGuard" apk add wireguard-tools iproute2 iptables procps libqrencode-tools curl ca-certificates
@@ -1112,6 +1121,7 @@ installWireGuard() {
 	fi
 
 	validate_configuration
+	checkArchPendingKernelUpgrade
 	installWireGuardPackages
 
 	run_cmd_fatal "Creating WireGuard directory" mkdir -p "$WG_DIR"
