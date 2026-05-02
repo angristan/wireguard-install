@@ -83,6 +83,10 @@ jobs:
               name: ubuntu-24.04-dual-stack
               image: ubuntu:24.04
               client_ipv6: true
+          - os:
+              name: ubuntu-24.04-full-tunnel
+              image: ubuntu:24.04
+              full_tunnel: true
 
     name: ${{ matrix.os.name }}
     steps:
@@ -101,4 +105,5 @@ jobs:
           SERVER_BASE_IMAGE: ${{ matrix.os.image }}
           ENABLE_NFTABLES: ${{ matrix.os.enable_nftables && 'y' || 'n' }}
           CLIENT_IPV6: ${{ matrix.os.client_ipv6 && 'y' || 'n' }}
+          FULL_TUNNEL_TEST: ${{ matrix.os.full_tunnel && 'y' || 'n' }}
         run: bash test/e2e/run-docker-e2e.sh

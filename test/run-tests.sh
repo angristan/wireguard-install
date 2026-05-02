@@ -326,6 +326,23 @@ assert_file_contains "interactive install prompts for prefilled AllowedIPs" "$in
 assert_file_contains "interactive install prompts for MTU mode" "$install_prompt_log" "MTU choice [1-2]: "
 assert_file_contains "interactive install prompts for prefilled custom MTU" "$install_prompt_log" "MTU [576-65535]: "
 
+cmd_install_log="${TEST_TMP}/cmd-install.log"
+if (
+	installWireGuard() {
+		{
+			echo "NON_INTERACTIVE_INSTALL=${NON_INTERACTIVE_INSTALL:-}"
+			echo "NEW_CLIENT=${NEW_CLIENT:-}"
+		} >"$cmd_install_log"
+	}
+	cmd_install -i --no-client
+) >"${TEST_TMP}/stdout" 2>"${TEST_TMP}/stderr"; then
+	pass "interactive install honors no-client flag"
+else
+	fail "interactive install honors no-client flag"
+fi
+assert_file_contains "interactive install remains interactive with no-client flag" "$cmd_install_log" "NON_INTERACTIVE_INSTALL=n"
+assert_file_contains "interactive install skips initial client with no-client flag" "$cmd_install_log" "NEW_CLIENT=n"
+
 assert_true "version_ge accepts newer version" version_ge "2.1" "2.0"
 assert_true "version_ge accepts equal version" version_ge "2.0" "2.0"
 assert_false "version_ge rejects older version" version_ge "1.9" "2.0"

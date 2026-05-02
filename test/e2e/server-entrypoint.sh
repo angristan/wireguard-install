@@ -12,6 +12,7 @@ WG_ENDPOINT=${WG_ENDPOINT:-wireguard-server}
 CLIENT_NAME=${CLIENT_NAME:-testclient}
 CLIENT_CONFIG=${CLIENT_CONFIG:-/shared/testclient.conf}
 CLIENT_IPV6=${CLIENT_IPV6:-n}
+FULL_TUNNEL_TEST=${FULL_TUNNEL_TEST:-n}
 WG_ALLOWED_IPV4=${WG_ALLOWED_IPV4:-${WG_SERVER_IPV4%.*}.0/24}
 WG_ALLOWED_IPV6=${WG_ALLOWED_IPV6:-fd77:77:77::/64}
 
@@ -19,6 +20,10 @@ echo "=== WireGuard server E2E ==="
 
 if [[ $CLIENT_IPV6 != "y" && $CLIENT_IPV6 != "n" ]]; then
 	echo "CLIENT_IPV6 must be y or n." >&2
+	exit 1
+fi
+if [[ $FULL_TUNNEL_TEST != "y" && $FULL_TUNNEL_TEST != "n" ]]; then
+	echo "FULL_TUNNEL_TEST must be y or n." >&2
 	exit 1
 fi
 
@@ -45,13 +50,15 @@ if [[ $CLIENT_IPV6 == "y" ]]; then
 	install_args+=(
 		--server-ipv6 "$WG_SERVER_IPV6"
 		--client-ipv6
-		--allowed-ips "${WG_ALLOWED_IPV4},${WG_ALLOWED_IPV6}"
 	)
+	if [[ $FULL_TUNNEL_TEST == "n" ]]; then
+		install_args+=(--allowed-ips "${WG_ALLOWED_IPV4},${WG_ALLOWED_IPV6}")
+	fi
 else
-	install_args+=(
-		--no-client-ipv6
-		--allowed-ips "$WG_ALLOWED_IPV4"
-	)
+	install_args+=(--no-client-ipv6)
+	if [[ $FULL_TUNNEL_TEST == "n" ]]; then
+		install_args+=(--allowed-ips "$WG_ALLOWED_IPV4")
+	fi
 fi
 
 /opt/wireguard-install.sh "${install_args[@]}"
@@ -65,10 +72,21 @@ grep -Fq "ListenPort = ${WG_PORT}" "/etc/wireguard/${WG_INTERFACE}.conf"
 grep -Fq "Endpoint = ${WG_ENDPOINT}:${WG_PORT}" "$CLIENT_CONFIG"
 grep -Fq "Address = ${WG_CLIENT_IPV4}/32" "$CLIENT_CONFIG"
 grep -Fq "DNS = " "$CLIENT_CONFIG"
+if [[ $FULL_TUNNEL_TEST == "y" ]]; then
+	if [[ $CLIENT_IPV6 == "y" ]]; then
+		grep -Fq "AllowedIPs = 0.0.0.0/0,::/0" "$CLIENT_CONFIG"
+	else
+		grep -Fq "AllowedIPs = 0.0.0.0/0" "$CLIENT_CONFIG"
+	fi
+elif [[ $CLIENT_IPV6 == "n" ]]; then
+	grep -Fq "AllowedIPs = ${WG_ALLOWED_IPV4}" "$CLIENT_CONFIG"
+fi
 if [[ $CLIENT_IPV6 == "y" ]]; then
 	grep -Fq "Address = ${WG_SERVER_IPV4}/24,${WG_SERVER_IPV6}/64" "/etc/wireguard/${WG_INTERFACE}.conf"
 	grep -Fq "Address = ${WG_CLIENT_IPV4}/32,${WG_CLIENT_IPV6}/128" "$CLIENT_CONFIG"
-	grep -Fq "AllowedIPs = ${WG_ALLOWED_IPV4},${WG_ALLOWED_IPV6}" "$CLIENT_CONFIG"
+	if [[ $FULL_TUNNEL_TEST == "n" ]]; then
+		grep -Fq "AllowedIPs = ${WG_ALLOWED_IPV4},${WG_ALLOWED_IPV6}" "$CLIENT_CONFIG"
+	fi
 fi
 
 echo "Bringing up WireGuard interface..."

@@ -1938,6 +1938,7 @@ cmd_install() {
 	done
 
 	requireNoWireGuard
+	[[ $no_client == true ]] && NEW_CLIENT=n
 
 	if [[ $interactive == true ]]; then
 		NON_INTERACTIVE_INSTALL=n
@@ -1945,7 +1946,6 @@ cmd_install() {
 	else
 		NON_INTERACTIVE_INSTALL=y
 		APPROVE_INSTALL=y
-		[[ $no_client == true ]] && NEW_CLIENT=n
 		installWireGuard
 	fi
 }
