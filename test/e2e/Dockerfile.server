@@ -1,0 +1,38 @@
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE}
+
+ARG ENABLE_NFTABLES=n
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY wireguard-install.sh /opt/wireguard-install.sh
+COPY test/e2e/server-entrypoint.sh /opt/e2e/server-entrypoint.sh
+
+RUN if command -v apk >/dev/null; then \
+		apk add --no-cache bash; \
+	fi
+
+# Disposable Arch containers need fresh package databases; keep this out of the host installer.
+RUN if command -v pacman >/dev/null; then \
+		pacman --disable-sandbox -Syu --noconfirm && pacman -Scc --noconfirm; \
+	fi
+
+RUN if [ "$ENABLE_NFTABLES" = "y" ]; then \
+		if command -v apt-get >/dev/null; then \
+			apt-get update && apt-get install -y --no-install-recommends nftables && rm -rf /var/lib/apt/lists/*; \
+		elif command -v dnf >/dev/null; then \
+			dnf install -y nftables && dnf clean all; \
+		elif command -v yum >/dev/null; then \
+			yum install -y nftables && yum clean all; \
+		elif command -v pacman >/dev/null; then \
+			pacman --disable-sandbox --needed --noconfirm -S nftables && pacman -Scc --noconfirm; \
+		elif command -v zypper >/dev/null; then \
+			zypper install -y nftables && zypper clean -a; \
+		elif command -v apk >/dev/null; then \
+			apk add --no-cache nftables; \
+		fi; \
+	fi
+
+RUN chmod +x /opt/wireguard-install.sh /opt/e2e/server-entrypoint.sh
+
+ENTRYPOINT ["/opt/e2e/server-entrypoint.sh"]
