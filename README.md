@@ -31,7 +31,7 @@ Supported distributions:
 
 ## Usage
 
-Download and execute the script. Answer the questions asked by the script and it will take care of the rest.
+Download and execute the script. Running it without arguments starts the interactive installer and it will take care of the rest.
 
 ```bash
 curl -O https://raw.githubusercontent.com/angristan/wireguard-install/master/wireguard-install.sh
@@ -41,10 +41,19 @@ chmod +x wireguard-install.sh
 
 It will install WireGuard (kernel module and tools) on the server, configure it, create a systemd service and a client configuration file.
 
+The `install` subcommand is non-interactive by default. Pass `-i`/`--interactive` to run the same install wizard, or pass options explicitly for unattended installs:
+
+```bash
+./wireguard-install.sh install -i
+./wireguard-install.sh install --endpoint vpn.example.com --client alice --output /tmp/alice.conf
+./wireguard-install.sh install --endpoint vpn.example.com --no-client-ipv6 --allowed-ips 0.0.0.0/0
+./wireguard-install.sh install --endpoint vpn.example.com --no-client --port 51820 --dns-primary 1.1.1.1 --mtu 1420
+./wireguard-install.sh install --help
+```
+
 Run the script again to add or remove clients. You can also use the subcommand interface:
 
 ```bash
-./wireguard-install.sh install --endpoint vpn.example.com --client alice
 ./wireguard-install.sh client add bob --output /tmp/bob.conf
 ./wireguard-install.sh client list
 ./wireguard-install.sh client revoke bob --force
