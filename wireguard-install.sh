@@ -442,6 +442,157 @@ AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SER
 	echo -e "${GREEN}Your client config file is in ${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf${NC}"
 }
 
+function newClients() {
+	if [[ ${SERVER_PUB_IP} =~ .*:.* ]]; then
+		if [[ ${SERVER_PUB_IP} != *"["* ]] || [[ ${SERVER_PUB_IP} != *"]"* ]]; then
+			SERVER_PUB_IP="[${SERVER_PUB_IP}]"
+		fi
+	fi
+	ENDPOINT="${SERVER_PUB_IP}:${SERVER_PORT}"
+	BASE_IPV4=$(echo "$SERVER_WG_IPV4" | awk -F '.' '{ print $1"."$2"."$3 }')
+	BASE_IPV6=$(echo "$SERVER_WG_IPV6" | awk -F '::' '{ print $1 }')
+
+	echo ""
+	echo "Multiple clients configuration"
+	echo ""
+	echo "The client names must consist of alphanumeric character(s). They may also include underscores or dashes and can't exceed 15 chars."
+	echo "Separate names with commas."
+
+	local CLIENT_NAMES_INPUT
+	local RAW_CLIENT_NAME
+	local CLIENT_NAME
+	local CLIENT_EXISTS
+	local CLIENT_DUPLICATE
+	local EXISTING_CLIENT_NAME
+	local -a RAW_CLIENT_NAMES
+	local -a CLIENT_NAMES
+	local -a GENERATED_CLIENT_CONFIGS
+
+	until [[ ${#CLIENT_NAMES[@]} -gt 0 ]]; do
+		CLIENT_NAMES=()
+		read -rp "Client names: " -e CLIENT_NAMES_INPUT
+		IFS=',' read -r -a RAW_CLIENT_NAMES <<<"${CLIENT_NAMES_INPUT}"
+
+		for RAW_CLIENT_NAME in "${RAW_CLIENT_NAMES[@]}"; do
+			CLIENT_NAME="${RAW_CLIENT_NAME#"${RAW_CLIENT_NAME%%[![:space:]]*}"}"
+			CLIENT_NAME="${CLIENT_NAME%"${CLIENT_NAME##*[![:space:]]}"}"
+
+			if [[ -z ${CLIENT_NAME} ]]; then
+				continue
+			fi
+
+			if ! [[ ${CLIENT_NAME} =~ ^[a-zA-Z0-9_-]+$ && ${#CLIENT_NAME} -lt 16 ]]; then
+				echo ""
+				echo -e "${ORANGE}Client names must contain only alphanumeric characters, underscores or dashes and can't exceed 15 chars.${NC}"
+				echo ""
+				CLIENT_NAMES=()
+				break
+			fi
+
+			CLIENT_EXISTS=$(grep -c -E "^### Client ${CLIENT_NAME}\$" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+			if [[ ${CLIENT_EXISTS} != 0 ]]; then
+				echo ""
+				echo -e "${ORANGE}A client named ${CLIENT_NAME} was already created, please choose another name.${NC}"
+				echo ""
+				CLIENT_NAMES=()
+				break
+			fi
+
+			CLIENT_DUPLICATE=0
+			for EXISTING_CLIENT_NAME in "${CLIENT_NAMES[@]}"; do
+				if [[ ${EXISTING_CLIENT_NAME} == "${CLIENT_NAME}" ]]; then
+					CLIENT_DUPLICATE=1
+					break
+				fi
+			done
+
+			if [[ ${CLIENT_DUPLICATE} != 0 ]]; then
+				echo ""
+				echo -e "${ORANGE}Client name ${CLIENT_NAME} is duplicated in the list, please enter each name once.${NC}"
+				echo ""
+				CLIENT_NAMES=()
+				break
+			fi
+
+			CLIENT_NAMES+=("${CLIENT_NAME}")
+		done
+
+		if [[ ${#CLIENT_NAMES[@]} -eq 0 ]]; then
+			echo ""
+			echo -e "${ORANGE}Please enter at least one valid client name.${NC}"
+			echo ""
+		fi
+	done
+
+	for CLIENT_NAME in "${CLIENT_NAMES[@]}"; do
+		local DOT_IP
+		local FOUND_DOT_IP=""
+		local IPV4_EXISTS
+		local IPV6_EXISTS
+
+		for DOT_IP in {2..254}; do
+			IPV4_EXISTS=$(grep -c -F "${BASE_IPV4}.${DOT_IP}/32" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+			IPV6_EXISTS=$(grep -c -F "${BASE_IPV6}::${DOT_IP}/128" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+			if [[ ${IPV4_EXISTS} == '0' && ${IPV6_EXISTS} == '0' ]]; then
+				FOUND_DOT_IP="${DOT_IP}"
+				break
+			fi
+		done
+
+		if [[ -z ${FOUND_DOT_IP} ]]; then
+			echo ""
+			echo "The subnet configured supports only 253 clients."
+			exit 1
+		fi
+
+		CLIENT_WG_IPV4="${BASE_IPV4}.${FOUND_DOT_IP}"
+		CLIENT_WG_IPV6="${BASE_IPV6}::${FOUND_DOT_IP}"
+		CLIENT_PRIV_KEY=$(wg genkey)
+		CLIENT_PUB_KEY=$(echo "${CLIENT_PRIV_KEY}" | wg pubkey)
+		CLIENT_PRE_SHARED_KEY=$(wg genpsk)
+		HOME_DIR=$(getHomeDirForClient "${CLIENT_NAME}")
+		CLIENT_CONFIG="${HOME_DIR}/${SERVER_WG_NIC}-client-${CLIENT_NAME}.conf"
+
+		echo "[Interface]
+PrivateKey = ${CLIENT_PRIV_KEY}
+Address = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128
+DNS = ${CLIENT_DNS_1},${CLIENT_DNS_2}
+
+# Uncomment the next line to set a custom MTU
+# This might impact performance, so use it only if you know what you are doing
+# See https://github.com/nitred/nr-wg-mtu-finder to find your optimal MTU
+# MTU = 1420
+
+[Peer]
+PublicKey = ${SERVER_PUB_KEY}
+PresharedKey = ${CLIENT_PRE_SHARED_KEY}
+Endpoint = ${ENDPOINT}
+AllowedIPs = ${ALLOWED_IPS}" >"${CLIENT_CONFIG}"
+
+		echo -e "\n### Client ${CLIENT_NAME}
+[Peer]
+PublicKey = ${CLIENT_PUB_KEY}
+PresharedKey = ${CLIENT_PRE_SHARED_KEY}
+AllowedIPs = ${CLIENT_WG_IPV4}/32,${CLIENT_WG_IPV6}/128" >>"/etc/wireguard/${SERVER_WG_NIC}.conf"
+
+		GENERATED_CLIENT_CONFIGS+=("${CLIENT_CONFIG}")
+	done
+
+	wg syncconf "${SERVER_WG_NIC}" <(wg-quick strip "${SERVER_WG_NIC}")
+
+	if command -v qrencode &>/dev/null; then
+		for CLIENT_CONFIG in "${GENERATED_CLIENT_CONFIGS[@]}"; do
+			echo -e "${GREEN}\nHere is your client config file as a QR Code:\n${NC}"
+			qrencode -t ansiutf8 -l L <"${CLIENT_CONFIG}"
+			echo ""
+		done
+	fi
+
+	for CLIENT_CONFIG in "${GENERATED_CLIENT_CONFIGS[@]}"; do
+		echo -e "${GREEN}Your client config file is in ${CLIENT_CONFIG}${NC}"
+	done
+}
+
 function listClients() {
 	NUMBER_OF_CLIENTS=$(grep -c -E "^### Client" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 	if [[ ${NUMBER_OF_CLIENTS} -eq 0 ]]; then
@@ -563,27 +714,31 @@ function manageMenu() {
 	echo ""
 	echo "What do you want to do?"
 	echo "   1) Add a new user"
-	echo "   2) List all users"
-	echo "   3) Revoke existing user"
-	echo "   4) Uninstall WireGuard"
-	echo "   5) Exit"
-	until [[ ${MENU_OPTION} =~ ^[1-5]$ ]]; do
-		read -rp "Select an option [1-5]: " MENU_OPTION
+	echo "   2) Add multiple new users"
+	echo "   3) List all users"
+	echo "   4) Revoke existing user"
+	echo "   5) Uninstall WireGuard"
+	echo "   6) Exit"
+	until [[ ${MENU_OPTION} =~ ^[1-6]$ ]]; do
+		read -rp "Select an option [1-6]: " MENU_OPTION
 	done
 	case "${MENU_OPTION}" in
 	1)
 		newClient
 		;;
 	2)
-		listClients
+		newClients
 		;;
 	3)
-		revokeClient
+		listClients
 		;;
 	4)
-		uninstallWg
+		revokeClient
 		;;
 	5)
+		uninstallWg
+		;;
+	6)
 		exit 0
 		;;
 	esac
