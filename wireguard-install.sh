@@ -200,6 +200,34 @@ function isIPv4SubnetTaken() {
 	return 1
 }
 
+# Validate a single IPv4 CIDR (e.g. 10.0.0.0/8). Accepts /0 through /32.
+function isValidIPv4CIDR() {
+	local cidr=$1
+	[[ "$cidr" =~ ^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])/([0-9]|[12][0-9]|3[0-2])$ ]]
+}
+
+# Validate a single IPv6 CIDR. Loose syntactic check + /0-/128 prefix.
+function isValidIPv6CIDR() {
+	local cidr=$1
+	[[ "$cidr" =~ ^[0-9a-fA-F:]+/[0-9]+$ ]] || return 1
+	[[ "$cidr" == *:* ]] || return 1
+	local prefix=${cidr##*/}
+	[[ ${prefix} -le 128 ]]
+}
+
+# Validate a comma-separated AllowedIPs list. Each entry must be a valid CIDR.
+function isValidCIDRList() {
+	local list=$1
+	[[ -z "$list" ]] && return 1
+	local item
+	local IFS=','
+	for item in $list; do
+		[[ -z "$item" ]] && return 1
+		isValidIPv4CIDR "$item" || isValidIPv6CIDR "$item" || return 1
+	done
+	return 0
+}
+
 # True if any other profile already uses this IPv6 /64 prefix.
 function isIPv6SubnetTaken() {
 	local ipv6=$1
@@ -363,12 +391,23 @@ function installQuestions() {
 		DEFAULT_ALLOWED_IPS="0.0.0.0/0,::/0"
 	fi
 
-	until [[ ${ALLOWED_IPS} =~ ^.+$ ]]; do
-		echo -e "\nWireGuard uses a parameter called AllowedIPs to determine what is routed over the VPN."
-		read -rp "Allowed IPs list for generated clients (leave default to route everything): " -e -i "${DEFAULT_ALLOWED_IPS}" ALLOWED_IPS
-		if [[ ${ALLOWED_IPS} == "" ]]; then
+	ALLOWED_IPS=""
+	while true; do
+		echo ""
+		echo "WireGuard uses a parameter called AllowedIPs to determine what is"
+		echo "routed over the VPN. You can enter one CIDR or several separated by"
+		echo "commas (e.g. 10.0.0.0/8,192.168.0.0/16,0.0.0.0/0)."
+		read -rp "Allowed IPs list for generated clients: " -e -i "${DEFAULT_ALLOWED_IPS}" ALLOWED_IPS
+		if [[ -z "${ALLOWED_IPS}" ]]; then
 			ALLOWED_IPS="${DEFAULT_ALLOWED_IPS}"
 		fi
+		# Strip whitespace so "10.0.0.0/8, 192.168.0.0/16" is accepted
+		ALLOWED_IPS=$(echo "${ALLOWED_IPS}" | tr -d '[:space:]')
+		if isValidCIDRList "${ALLOWED_IPS}"; then
+			break
+		fi
+		echo -e "${ORANGE}Invalid input. Each entry must be a valid IPv4 or IPv6 CIDR (e.g. 10.0.0.0/8 or fd00::/64).${NC}"
+		ALLOWED_IPS=""
 	done
 
 	echo ""
