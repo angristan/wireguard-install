@@ -8,6 +8,8 @@ ORANGE='\033[0;33m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
+umask 077
+
 function installPackages() {
 	if ! "$@"; then
 		echo -e "${RED}Failed to install packages.${NC}"
@@ -238,7 +240,9 @@ function installWireGuard() {
 	# Make sure the directory exists (this does not seem the be the case on fedora)
 	mkdir /etc/wireguard >/dev/null 2>&1
 
-	chmod 600 -R /etc/wireguard/
+	chmod 700 /etc/wireguard
+	find /etc/wireguard -type d -exec chmod 700 {} \;
+	find /etc/wireguard -type f -exec chmod 600 {} \;
 
 	SERVER_PRIV_KEY=$(wg genkey)
 	SERVER_PUB_KEY=$(echo "${SERVER_PRIV_KEY}" | wg pubkey)
@@ -285,11 +289,6 @@ PostDown = ip6tables -t nat -D POSTROUTING -o ${SERVER_PUB_NIC} -j MASQUERADE" >
 	# Enable routing on the server
 	echo "net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
-
-	if [[ ${OS} == 'fedora' ]]; then
-		chmod -v 700 /etc/wireguard
-		chmod -v 600 /etc/wireguard/*
-	fi
 
 	if [[ ${OS} == 'alpine' ]]; then
 		sysctl -p /etc/sysctl.d/wg.conf
