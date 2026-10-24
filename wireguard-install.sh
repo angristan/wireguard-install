@@ -360,24 +360,33 @@ function newClient() {
 		fi
 	done
 
+	BASE_IP=$(echo "$SERVER_WG_IPV4" | awk -F '.' '{ print $1"."$2"."$3 }')
+	SERVER_WG_IPV4_LAST_OCTET=${SERVER_WG_IPV4##*.}
+	DOT_EXISTS=1
 	for DOT_IP in {2..254}; do
-		DOT_EXISTS=$(grep -c "${SERVER_WG_IPV4::-1}${DOT_IP}" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+		if [[ ${DOT_IP} == "${SERVER_WG_IPV4_LAST_OCTET}" ]]; then
+			continue
+		fi
+		DOT_EXISTS=$(grep -c -F "${BASE_IP}.${DOT_IP}/32" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 		if [[ ${DOT_EXISTS} == '0' ]]; then
 			break
 		fi
 	done
 
-	if [[ ${DOT_EXISTS} == '1' ]]; then
+	if [[ ${DOT_EXISTS} != '0' ]]; then
 		echo ""
 		echo "The subnet configured supports only 253 clients."
 		exit 1
 	fi
 
-	BASE_IP=$(echo "$SERVER_WG_IPV4" | awk -F '.' '{ print $1"."$2"."$3 }')
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
 		read -rp "Client WireGuard IPv4: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV4="${BASE_IP}.${DOT_IP}"
-		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4/32" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+		if [[ ${CLIENT_WG_IPV4} == "${SERVER_WG_IPV4}" ]]; then
+			IPV4_EXISTS=1
+		else
+			IPV4_EXISTS=$(grep -c -F "${CLIENT_WG_IPV4}/32" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+		fi
 
 		if [[ ${IPV4_EXISTS} != 0 ]]; then
 			echo ""
